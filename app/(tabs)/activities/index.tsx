@@ -1,5 +1,5 @@
-import React, { useState, useEffect, type FC } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert, Modal, TextInput, Platform, Pressable, Keyboard, TouchableWithoutFeedback } from 'react-native';
+import React, { useState, useEffect, type FC, useRef, useLayoutEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert, Modal, TextInput, Platform, Pressable, Keyboard, TouchableWithoutFeedback, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TabView } from 'react-native-tab-view';
 import { ExpenseCard, Expense } from '@/components/expenses/ExpenseCard';
@@ -8,6 +8,8 @@ import { Plus, Filter as FilterIcon, DollarSign, Trash2, Calendar } from 'lucide
 import { Calendar as ReactNativeCalendar, LocaleConfig } from 'react-native-calendars';
 import { AntDesign } from '@expo/vector-icons';
 import { Card } from '@/components/ui/Card';
+import { PieChart, BarChart } from 'react-native-chart-kit';
+import { Dimensions } from 'react-native';
 
 // Mock data for expenses
 const initialExpenses: Expense[] = [
@@ -88,6 +90,9 @@ const GROUP_MEMBERS = [
   'Ana e Luke',
   'Rodrigo',
 ];
+
+// Scroll position state for FlowTab
+const flowScrollYRef = { current: 0 };
 
 const ExpensesTab: FC<{ expenses: Expense[]; setExpenses: React.Dispatch<React.SetStateAction<Expense[]>> }> = ({ expenses, setExpenses }) => {
   const [selectedType, setSelectedType] = useState<'GERAL' | 'MENSAL'>('GERAL');
@@ -306,24 +311,24 @@ const ExpensesTab: FC<{ expenses: Expense[]; setExpenses: React.Dispatch<React.S
     const matchesEnd = !filters.endDate || expDate <= filters.endDate;
     return matchesName && matchesCategory && matchesStart && matchesEnd;
   });
-
+  
   return (
     <View style={styles.tabContainer}>
       <View style={styles.filterContainer}>
-        <TouchableOpacity
+        <TouchableOpacity 
           style={[styles.filterButton, selectedType === 'GERAL' && styles.activeFilterButton]}
           onPress={() => setSelectedType('GERAL')}
         >
           <Text style={[styles.filterText, selectedType === 'GERAL' && styles.activeFilterText]}>Geral</Text>
         </TouchableOpacity>
-        <TouchableOpacity
+        <TouchableOpacity 
           style={[styles.filterButton, selectedType === 'MENSAL' && styles.activeFilterButton]}
           onPress={() => setSelectedType('MENSAL')}
         >
           <Text style={[styles.filterText, selectedType === 'MENSAL' && styles.activeFilterText]}>Mensal</Text>
         </TouchableOpacity>
       </View>
-
+      
       <View style={styles.headerContainer}>
         <Text style={styles.listTitle}>
           {selectedType === 'GERAL' ? 'Despesas' : 'Despesas por mês'}
@@ -333,15 +338,15 @@ const ExpensesTab: FC<{ expenses: Expense[]; setExpenses: React.Dispatch<React.S
             <FilterIcon size={20} color="#2D6A4F" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
-            <Plus size={20} color="#2D6A4F" />
-          </TouchableOpacity>
+          <Plus size={20} color="#2D6A4F" />
+        </TouchableOpacity>
         </View>
       </View>
-
+      
       {selectedType === 'GERAL' && (
-        <FlatList
-          data={filteredExpenses}
-          keyExtractor={(item) => item.id}
+      <FlatList
+        data={filteredExpenses}
+        keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <ExpenseCard
               expense={item}
@@ -349,8 +354,8 @@ const ExpensesTab: FC<{ expenses: Expense[]; setExpenses: React.Dispatch<React.S
               onPress={() => handleEditExpense(item)}
             />
           )}
-          contentContainerStyle={styles.expensesList}
-        />
+        contentContainerStyle={styles.expensesList}
+      />
       )}
       {selectedType === 'MENSAL' && (
         <View style={styles.monthlyList}>
@@ -376,7 +381,7 @@ const ExpensesTab: FC<{ expenses: Expense[]; setExpenses: React.Dispatch<React.S
             >
               <AntDesign name="right" size={20} color={availableYears.indexOf(selectedYear) === 0 ? '#ccc' : '#2D6A4F'} />
             </TouchableOpacity>
-          </View>
+    </View>
           {monthlySums.length === 0 && (
             <Text style={{ textAlign: 'center', color: '#666', marginTop: 24 }}>Nenhuma despesa mensal encontrada.</Text>
           )}
@@ -424,7 +429,7 @@ const ExpensesTab: FC<{ expenses: Expense[]; setExpenses: React.Dispatch<React.S
                 >
                   <Text style={styles.dropdownButtonText}>{form.category}</Text>
                 </TouchableOpacity>
-              </View>
+  </View>
               {form.showCategoryDropdown && (
                 <View style={styles.dropdownList}>
                   {EXPENSE_CATEGORIES.map(cat => (
@@ -540,7 +545,7 @@ const ExpensesTab: FC<{ expenses: Expense[]; setExpenses: React.Dispatch<React.S
             <TouchableOpacity style={styles.cancelButton} onPress={() => setMonthModal(null)}>
               <Text style={styles.cancelButtonText}>Fechar</Text>
             </TouchableOpacity>
-          </View>
+  </View>
         </View>
       </Modal>
 
@@ -655,8 +660,8 @@ const ExpensesTab: FC<{ expenses: Expense[]; setExpenses: React.Dispatch<React.S
           </View>
         </View>
       </Modal>
-    </View>
-  );
+  </View>
+);
 };
 
 const IncomesTab: FC<{ incomes: any[]; setIncomes: React.Dispatch<React.SetStateAction<any[]>> }> = ({ incomes, setIncomes }) => {
@@ -835,11 +840,11 @@ const IncomesTab: FC<{ incomes: any[]; setIncomes: React.Dispatch<React.SetState
     );
   };
 
-  return (
+          return (
     <View style={styles.tabContainer}>
       {/* Submenu Geral/Mensal */}
       <View style={styles.filterContainer}>
-        <TouchableOpacity
+            <TouchableOpacity
           style={[styles.filterButton, selectedType === 'GERAL' && styles.activeFilterButton]}
           onPress={() => setSelectedType('GERAL')}
         >
@@ -856,11 +861,11 @@ const IncomesTab: FC<{ incomes: any[]; setIncomes: React.Dispatch<React.SetState
       <View style={styles.headerContainer}>
         <Text style={styles.listTitle}>
           {selectedType === 'GERAL' ? 'Pagamentos' : 'Pagamentos por mês'}
-        </Text>
+              </Text>
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <TouchableOpacity style={styles.addButton} onPress={() => setFilterModalVisible(true)}>
             <FilterIcon size={20} color="#2D6A4F" />
-          </TouchableOpacity>
+            </TouchableOpacity>
           <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
             <Plus size={20} color="#2D6A4F" />
           </TouchableOpacity>
@@ -1192,39 +1197,41 @@ const IncomesTab: FC<{ incomes: any[]; setIncomes: React.Dispatch<React.SetState
   );
 };
 
-const FlowTab: FC<{ expenses: Expense[]; incomes: any[] }> = ({ expenses, incomes }) => {
-  // Alternância mensal/anual
-  const [mode, setMode] = useState<'MENSAL' | 'ANUAL'>('MENSAL');
-  const now = new Date();
-  const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
-  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+interface FlowTabContentProps {
+  mode: 'MENSAL' | 'ANUAL';
+  setMode: React.Dispatch<React.SetStateAction<'MENSAL' | 'ANUAL'>>;
+  selectedMonth: number;
+  setSelectedMonth: React.Dispatch<React.SetStateAction<number>>;
+  selectedYear: number;
+  setSelectedYear: React.Dispatch<React.SetStateAction<number>>;
+  totalDespesas: number;
+  totalReceitas: number;
+  saldo: number;
+  pieData: any[];
+  barData: any;
+  MONTHS_PT: string[];
+  styles: any;
+}
 
-  // Filtros
-  const expensesFiltered = expenses.filter(exp => {
-    const d = new Date(exp.date);
-    if (mode === 'MENSAL') {
-      return d.getFullYear() === selectedYear && d.getMonth() === selectedMonth;
-    } else {
-      return d.getFullYear() === selectedYear;
-    }
-  });
-  const incomesFiltered = incomes.filter(inc => {
-    const d = new Date(inc.date);
-    if (mode === 'MENSAL') {
-      return d.getFullYear() === selectedYear && d.getMonth() === selectedMonth;
-    } else {
-      return d.getFullYear() === selectedYear;
-    }
-  });
+const FlowTabContent = React.memo(({
+  mode,
+  setMode,
+  selectedMonth,
+  setSelectedMonth,
+  selectedYear,
+  setSelectedYear,
+  totalDespesas,
+  totalReceitas,
+  saldo,
+  pieData,
+  barData,
+  MONTHS_PT,
+  styles
+}: FlowTabContentProps) => {
+  const chartWidth = Dimensions.get('window').width - 32;
 
-  // Somatórios
-  const totalDespesas = expensesFiltered.reduce((sum, exp) => sum + exp.amount, 0);
-  const totalReceitas = incomesFiltered.reduce((sum, inc) => sum + inc.amount, 0);
-  const saldo = totalReceitas - totalDespesas;
-
-  // UI
   return (
-    <View style={styles.tabContainer}>
+    <>
       {/* Alternância mensal/anual */}
       <View style={styles.filterContainer}>
         <TouchableOpacity
@@ -1273,102 +1280,256 @@ const FlowTab: FC<{ expenses: Expense[]; incomes: any[] }> = ({ expenses, income
         </View>
       </View>
       <View style={{ marginTop: 12 }}>
-        <View style={{ backgroundColor: saldo >= 0 ? '#D1E7FF' : '#FFF3CD', borderRadius: 12, padding: 16, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ color: saldo >= 0 ? '#0D47A1' : '#B68900', fontWeight: '700', fontSize: 15 }}>Saldo</Text>
-          <Text style={{ color: saldo >= 0 ? '#0D47A1' : '#B68900', fontWeight: '700', fontSize: 20, marginTop: 8 }} numberOfLines={1} ellipsizeMode="tail">{saldo.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</Text>
+        <View style={{ backgroundColor: saldo >= 0 ? '#D1E7FF' : '#FFF9DB', borderRadius: 12, padding: 16, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ color: saldo >= 0 ? '#0D47A1' : '#7C4700', fontWeight: '700', fontSize: 15 }}>Saldo</Text>
+          <Text style={{ color: saldo >= 0 ? '#0D47A1' : '#7C4700', fontWeight: '700', fontSize: 20, marginTop: 8 }} numberOfLines={1} ellipsizeMode="tail">{saldo.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</Text>
         </View>
       </View>
-    </View>
+      {/* Gráfico de pizza das despesas por categoria */}
+      {pieData.length > 0 ? (
+        <View style={{ marginTop: 24, alignItems: 'center' }}>
+          <PieChart
+            data={pieData}
+            width={Dimensions.get('window').width - 32}
+            height={180}
+            chartConfig={{
+              color: () => '#333',
+            }}
+            accessor="population"
+            backgroundColor="transparent"
+            paddingLeft="0"
+            absolute
+          />
+          <Text style={{ marginTop: 8, color: '#333', fontWeight: '500' }}>
+            Despesas por categoria ({mode === 'MENSAL' ? 'Mensal' : 'Anual'})
+          </Text>
+        </View>
+      ) : (
+        <Text style={{ marginTop: 24, textAlign: 'center', color: '#666' }}>Nenhuma despesa para exibir no gráfico.</Text>
+      )}
+      {/* Gráfico de barras das despesas mensais */}
+      <View style={{ width: '100%', alignItems: 'center' }}>
+        <BarChart
+          data={barData}
+          width={chartWidth}
+          height={220}
+          yAxisLabel="R$ "
+          yAxisSuffix=""
+          chartConfig={{
+            backgroundColor: '#fff',
+            backgroundGradientFrom: '#fff',
+            backgroundGradientTo: '#fff',
+            decimalPlaces: 2,
+            color: (opacity = 1) => `rgba(176, 42, 55, ${opacity})`,
+            labelColor: (opacity = 1) => `rgba(44, 106, 79, ${opacity})`,
+            style: { borderRadius: 16 },
+            propsForBackgroundLines: { stroke: '#eee' },
+          }}
+          style={{ borderRadius: 12 }}
+        />
+        <Text style={{ marginTop: 8, color: '#333', fontWeight: '500' }}>
+          Despesas mensais ({selectedYear})
+        </Text>
+      </View>
+    </>
   );
-};
+});
+
+// Função FlowTab para ser usada no FlowTabScrollWrapper
+function FlowTab(props: any) {
+  // Filtros
+  const expensesFiltered = props.expenses.filter((exp: any) => {
+    const d = new Date(exp.date);
+    if (props.mode === 'MENSAL') {
+      return d.getFullYear() === props.selectedYear && d.getMonth() === props.selectedMonth;
+    } else {
+      return d.getFullYear() === props.selectedYear;
+    }
+  });
+  const incomesFiltered = props.incomes.filter((inc: any) => {
+    const d = new Date(inc.date);
+    if (props.mode === 'MENSAL') {
+      return d.getFullYear() === props.selectedYear && d.getMonth() === props.selectedMonth;
+    } else {
+      return d.getFullYear() === props.selectedYear;
+    }
+  });
+
+  // Somatórios
+  const totalDespesas = expensesFiltered.reduce((sum: number, exp: any) => sum + exp.amount, 0);
+  const totalReceitas = incomesFiltered.reduce((sum: number, inc: any) => sum + inc.amount, 0);
+  const saldo = totalReceitas - totalDespesas;
+
+  // Gráfico de pizza das despesas por categoria
+  const despesasPorCategoria = expensesFiltered.reduce((acc: any, exp: any) => {
+    if (exp.category && typeof exp.category === 'string') {
+      acc[exp.category] = (acc[exp.category] || 0) + exp.amount;
+    }
+    return acc;
+  }, {});
+
+  const pieData = Object.entries(despesasPorCategoria)
+    .filter(([_, value]) => (value as number) > 0)
+    .map(([category, value], i) => ({
+      name: category,
+      population: value as number,
+      color: [
+        '#B02A37', // vermelho
+        '#146C43', // verde
+        '#B68900', // amarelo
+        '#0D47A1', // azul escuro
+        '#6C584C', // marrom
+        '#A3A847', // verde claro
+        '#7C4700', // marrom escuro
+      ][i % 7],
+      legendFontColor: '#333',
+      legendFontSize: 13,
+    }));
+
+  // Gráfico de barras das despesas mensais do ano selecionado
+  const despesasPorMes = Array(12).fill(0);
+  props.expenses
+    .filter((exp: any) => {
+      const d = new Date(exp.date);
+      return d.getFullYear() === props.selectedYear;
+    })
+    .forEach((exp: any) => {
+      const d = new Date(exp.date);
+      despesasPorMes[d.getMonth()] += exp.amount;
+    });
+
+  const barData = {
+    labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez', ''],
+    datasets: [
+      { data: [...despesasPorMes, 0] },
+    ],
+  };
+
+  return (
+    <FlowTabContent
+      mode={props.mode}
+      setMode={props.setMode}
+      selectedMonth={props.selectedMonth}
+      setSelectedMonth={props.setSelectedMonth}
+      selectedYear={props.selectedYear}
+      setSelectedYear={props.setSelectedYear}
+      totalDespesas={totalDespesas}
+      totalReceitas={totalReceitas}
+      saldo={saldo}
+      pieData={pieData}
+      barData={barData}
+      MONTHS_PT={MONTHS_PT}
+      styles={styles}
+    />
+  );
+}
+
+// Wrapper para controle manual e forçado do scroll na aba Fluxo
+function FlowTabScrollWrapper(props: any) {
+  const scrollRef = useRef<import('react-native').ScrollView>(null);
+  const scrollYRef = useRef(0);
+  const [restoreScroll, setRestoreScroll] = useState(false);
+
+  // Salva a posição do scroll
+  const handleScroll = (e: any) => {
+    scrollYRef.current = e.nativeEvent.contentOffset.y;
+  };
+
+  // Sempre que mudar modo, mês ou ano, ativa restauração
+  React.useEffect(() => {
+    setRestoreScroll(true);
+  }, [props.mode, props.selectedMonth, props.selectedYear]);
+
+  // Após render/layout, restaura a posição do scroll
+  useLayoutEffect(() => {
+    if (restoreScroll && scrollRef.current) {
+      setTimeout(() => {
+        // @ts-ignore
+        if (scrollRef.current && typeof scrollRef.current.scrollTo === 'function') {
+          // @ts-ignore
+          scrollRef.current.scrollTo({ y: scrollYRef.current, animated: false });
+        }
+      }, 0);
+      setRestoreScroll(false);
+    }
+  }, [restoreScroll, props]);
+
+  return (
+    <ScrollView
+      ref={scrollRef}
+      style={{ flex: 1 }}
+      contentContainerStyle={{ flexGrow: 1, paddingBottom: 32 }}
+      showsVerticalScrollIndicator={true}
+      onScroll={handleScroll}
+      scrollEventThrottle={16}
+    >
+      <View style={{ minHeight: 700 }}>
+        <FlowTab {...props} />
+      </View>
+    </ScrollView>
+  );
+}
 
 const ScheduleTab = () => (
   <View style={styles.tabContainer}>
     <Text style={styles.tabTitle}>Resumo</Text>
     <Text>Conteúdo da aba Resumo</Text>
-  </View>
+      </View>
 );
 
 export default function ActivitiesScreen() {
-  const [index, setIndex] = useState(0);
-  const [routes] = useState([
-    { key: 'expenses', title: 'Despesas' },
-    { key: 'incomes', title: 'Receitas' },
-    { key: 'flow', title: 'Fluxo' },
-    { key: 'schedule', title: 'Resumo' },
-  ]);
+  const [activeTab, setActiveTab] = useState<'expenses' | 'incomes' | 'flow' | 'schedule'>('expenses');
 
   const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
   const [incomes, setIncomes] = useState<any[]>([]);
 
-  // Custom tab bar
-  const renderTabBar = (props: any) => {
-    return (
-      <View style={styles.tabBar}>
-        {props.navigationState.routes.map((route: any, i: number) => {
-          const isActive = index === i;
-          return (
-            <TouchableOpacity
-              key={route.key}
-              style={[styles.tabItem, isActive && styles.activeTabItem]}
-              onPress={() => setIndex(i)}
-            >
-              <Text style={[styles.tabText, isActive && styles.activeTabText]}>
-                {route.title}
-              </Text>
-              {isActive && <View style={styles.activeTabIndicator} />}
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-    );
-  };
-
-  // Configurar calendário para pt-br
-  LocaleConfig.locales['pt-br'] = {
-    monthNames: [
-      'Janeiro','Fevereiro','Março','Abril','Maio','Junho',
-      'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'
-    ],
-    monthNamesShort: [
-      'Jan','Fev','Mar','Abr','Mai','Jun',
-      'Jul','Ago','Set','Out','Nov','Dez'
-    ],
-    dayNames: [
-      'Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'
-    ],
-    dayNamesShort: [
-      'Dom','Seg','Ter','Qua','Qui','Sex','Sáb'
-    ],
-    today: 'Hoje'
-  };
-  LocaleConfig.defaultLocale = 'pt-br';
+  // Estados globais para a aba Fluxo
+  const [mode, setMode] = useState<'MENSAL' | 'ANUAL'>('MENSAL');
+  const now = new Date();
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.headerMain}>
         <Text style={styles.titleMain}>Financeiro</Text>
       </View>
-      
-      <TabView
-        navigationState={{ index, routes }}
-        renderScene={({ route }) => {
-          switch (route.key) {
-            case 'expenses':
-              return <ExpensesTab expenses={expenses} setExpenses={setExpenses} />;
-            case 'incomes':
-              return <IncomesTab incomes={incomes} setIncomes={setIncomes} />;
-            case 'flow':
-              return <FlowTab expenses={expenses} incomes={incomes} />;
-            case 'schedule':
-              return <ScheduleTab />;
-            default:
-              return null;
-          }
-        }}
-        onIndexChange={setIndex}
-        renderTabBar={renderTabBar}
-      />
+      <View style={styles.tabBar}>
+        {[
+          { key: 'expenses', title: 'Despesas' },
+          { key: 'incomes', title: 'Receitas' },
+          { key: 'flow', title: 'Fluxo' },
+          { key: 'schedule', title: 'Resumo' },
+        ].map(tab => (
+          <TouchableOpacity
+            key={tab.key}
+            style={[styles.tabItem, activeTab === tab.key && styles.activeTabItem]}
+            onPress={() => setActiveTab(tab.key as any)}
+          >
+            <Text style={[styles.tabText, activeTab === tab.key && styles.activeTabText]}>
+              {tab.title}
+            </Text>
+            {activeTab === tab.key && <View style={styles.activeTabIndicator} />}
+          </TouchableOpacity>
+        ))}
+      </View>
+      <View style={[styles.tabContainer, { minHeight: '100%', flexGrow: 1 }]}> 
+        {activeTab === 'expenses' && <ExpensesTab expenses={expenses} setExpenses={setExpenses} />}
+        {activeTab === 'incomes' && <IncomesTab incomes={incomes} setIncomes={setIncomes} />}
+        {activeTab === 'flow' && (
+          <FlowTabScrollWrapper
+            expenses={expenses}
+            incomes={incomes}
+            mode={mode}
+            setMode={setMode}
+            selectedMonth={selectedMonth}
+            setSelectedMonth={setSelectedMonth}
+            selectedYear={selectedYear}
+            setSelectedYear={setSelectedYear}
+          />
+        )}
+        {activeTab === 'schedule' && <ScheduleTab />}
+      </View>
     </SafeAreaView>
   );
 }
@@ -1426,7 +1587,6 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 3,
   },
   tabContainer: {
-    flex: 1,
     backgroundColor: '#F5F7F9',
     padding: 16,
   },
