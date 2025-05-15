@@ -4,15 +4,12 @@ import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { DollarSign, Calendar, CircleCheck as CheckCircle2, Circle as XCircle, Trash2 } from 'lucide-react-native';
 
-export type ExpenseType = 'GENERAL' | 'MONTHLY';
-
 export interface Expense {
   id: string;
   title: string;
   description?: string;
   amount: number;
   date: string;
-  type: ExpenseType;
   category?: string;
   isPaid: boolean;
   paymentMethod?: string;
@@ -60,11 +57,6 @@ export function ExpenseCard({ expense, onPress, onDelete }: ExpenseCardProps) {
             )}
           </View>
           <View style={styles.actionsRight}>
-            <Badge 
-              text={expense.type === 'MONTHLY' ? 'Mensal' : 'Geral'} 
-              variant={expense.type === 'MONTHLY' ? 'primary' : 'secondary'}
-              style={styles.badge}
-            />
             {onDelete && (
               <TouchableOpacity
                 style={styles.trashButton}
@@ -89,20 +81,7 @@ export function ExpenseCard({ expense, onPress, onDelete }: ExpenseCardProps) {
               <Text style={styles.date}>{formatDate(expense.date)}</Text>
             </View>
           </View>
-          <View style={styles.statusContainer}>
-            {expense.isPaid ? (
-              <View style={styles.paidContainer}>
-                <CheckCircle2 size={14} color="#059669" />
-                <Text style={styles.paidText}>Pago</Text>
-              </View>
-            ) : (
-              <View style={styles.unpaidContainer}>
-                <XCircle size={14} color="#DC2626" />
-                <Text style={styles.unpaidText}>Em aberto</Text>
-              </View>
-            )}
-            <Text style={styles.userText}>por {expense.user.name}</Text>
-          </View>
+          <Text style={styles.userText}>por {expense.user.name}</Text>
         </View>
       </Card>
     </TouchableOpacity>

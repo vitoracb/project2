@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert, Modal, TextInput, Platform, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TabView, SceneMap } from 'react-native-tab-view';
-import { ExpenseCard, Expense, ExpenseType } from '@/components/expenses/ExpenseCard';
+import { ExpenseCard, Expense } from '@/components/expenses/ExpenseCard';
 import { Button } from '@/components/ui/Button';
-import { Plus } from 'lucide-react-native';
+import { Plus, Filter as FilterIcon } from 'lucide-react-native';
+import { Calendar, LocaleConfig } from 'react-native-calendars';
+import { AntDesign } from '@expo/vector-icons';
 
 // Mock data for expenses
 const initialExpenses: Expense[] = [
@@ -14,7 +16,6 @@ const initialExpenses: Expense[] = [
     description: 'Annual service and oil change for the John Deere',
     amount: 450.75,
     date: '2025-05-10T10:30:00Z',
-    type: 'GENERAL',
     category: 'Equipment',
     isPaid: true,
     paymentMethod: 'Credit Card',
@@ -26,7 +27,6 @@ const initialExpenses: Expense[] = [
     description: 'Winter wheat seeds for north field',
     amount: 1250.00,
     date: '2025-05-08T14:15:00Z',
-    type: 'GENERAL',
     category: 'Crops',
     isPaid: true,
     paymentMethod: 'Bank Transfer',
@@ -38,7 +38,6 @@ const initialExpenses: Expense[] = [
     description: 'Quarterly property tax payment',
     amount: 2800.50,
     date: '2025-05-05T09:00:00Z',
-    type: 'MONTHLY',
     category: 'Taxes',
     isPaid: false,
     user: { id: '1', name: 'John Smith' }
@@ -49,7 +48,6 @@ const initialExpenses: Expense[] = [
     description: 'Electricity and water services',
     amount: 345.20,
     date: '2025-05-01T16:30:00Z',
-    type: 'MONTHLY',
     category: 'Utilities',
     isPaid: true,
     paymentMethod: 'Bank Transfer',
@@ -57,9 +55,93 @@ const initialExpenses: Expense[] = [
   }
 ];
 
+const CATEGORIES = [
+  'Mensalidade',
+  'Taxa Extra',
+  'Funcionário',
+  'Insumos',
+  'Infraestrutura',
+  'Maquinário',
+  'Mão de Obra',
+  'Outros',
+];
+
+const MONTHS_PT = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+];
+
 const ExpensesTab = () => {
   const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
-  const [selectedType, setSelectedType] = useState<ExpenseType | 'ALL'>('ALL');
+  const [selectedType, setSelectedType] = useState<'GERAL' | 'MENSAL'>('GERAL');
+  const [modalVisible, setModalVisible] = useState(false);
+  const [form, setForm] = useState({
+    title: '',
+    amount: '',
+    category: CATEGORIES[0],
+    date: new Date(),
+    showCategoryDropdown: false,
+    description: '',
+  });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [monthModal, setMonthModal] = useState<{month: number, year: number} | null>(null);
+  const [filterModalVisible, setFilterModalVisible] = useState(false);
+  const [filters, setFilters] = useState({
+    name: '',
+    startDate: null as Date | null,
+    endDate: null as Date | null,
+    category: '',
+  });
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+  const [showCategoryDropdownFilter, setShowCategoryDropdownFilter] = useState(false);
+
+  // Seletor de ano para filtro mensal
+  const availableYears = Array.from(
+    new Set(expenses.map(exp => new Date(exp.date).getFullYear()))
+  ).sort((a, b) => b - a);
+  const initialYear = availableYears.length > 0 ? availableYears[0] : 2025;
+  const [selectedYear, setSelectedYear] = useState(initialYear);
+
+  // Atualizar selectedYear quando availableYears mudar
+  useEffect(() => {
+    if (!availableYears.includes(selectedYear)) {
+      setSelectedYear(availableYears[0] || 2025);
+    }
+  }, [availableYears]);
+
+  // Para o filtro 'Mensal', agrupar despesas por mês do ano selecionado
+  const monthlySums = (() => {
+    if (selectedType !== 'MENSAL') return [];
+    const map = new Map();
+    expenses.filter(exp => new Date(exp.date).getFullYear() === selectedYear)
+      .forEach(exp => {
+        const date = new Date(exp.date);
+        const key = date.getMonth();
+        if (!map.has(key)) {
+          map.set(key, {
+            year: selectedYear,
+            month: date.getMonth(),
+            total: 0,
+          });
+        }
+        map.get(key).total += exp.amount;
+      });
+    // Ordenar por mês decrescente
+    return Array.from(map.values()).sort((a, b) => b.month - a.month);
+  })();
+
+  // Despesas do mês selecionado no modal
+  const expensesOfMonth = monthModal
+    ? expenses.filter(exp => {
+        const d = new Date(exp.date);
+        return (
+          d.getFullYear() === monthModal.year &&
+          d.getMonth() === monthModal.month
+        );
+      })
+    : [];
 
   const handleDelete = (id: string) => {
     Alert.alert(
@@ -75,51 +157,384 @@ const ExpensesTab = () => {
     );
   };
 
-  const filteredExpenses = selectedType === 'ALL'
-    ? expenses
-    : expenses.filter(expense => expense.type === selectedType);
+  const handleSaveExpense = () => {
+    if (!form.title.trim() || !form.amount.trim()) {
+      Alert.alert('Preencha todos os campos obrigatórios!');
+      return;
+    }
+    if (editingId) {
+      // Editar despesa existente
+      setExpenses(prev => prev.map(exp =>
+        exp.id === editingId
+          ? { ...exp, title: form.title, amount: parseFloat(form.amount), category: form.category, date: form.date.toISOString(), description: form.description }
+          : exp
+      ));
+    } else {
+      // Nova despesa
+      setExpenses(prev => [
+        {
+          id: Date.now().toString(),
+          title: form.title,
+          amount: parseFloat(form.amount),
+          date: form.date.toISOString(),
+          category: form.category,
+          isPaid: false,
+          user: { id: '1', name: 'Usuário' },
+          description: form.description,
+        },
+        ...prev,
+      ]);
+    }
+    setModalVisible(false);
+    setForm({ title: '', amount: '', category: CATEGORIES[0], date: new Date(), showCategoryDropdown: false, description: '' });
+    setEditingId(null);
+  };
+
+  const handleEditExpense = (expense: Expense) => {
+    setForm({
+      title: expense.title,
+      amount: String(expense.amount),
+      category: expense.category || CATEGORIES[0],
+      date: new Date(expense.date),
+      showCategoryDropdown: false,
+      description: expense.description || '',
+    });
+    setEditingId(expense.id);
+    setModalVisible(true);
+  };
+
+  // Filtro de despesas
+  const filteredExpenses = expenses.filter(exp => {
+    const matchesName = !filters.name || exp.title.toLowerCase().includes(filters.name.toLowerCase());
+    const matchesCategory = !filters.category || exp.category === filters.category;
+    const expDate = new Date(exp.date);
+    const matchesStart = !filters.startDate || expDate >= filters.startDate;
+    const matchesEnd = !filters.endDate || expDate <= filters.endDate;
+    return matchesName && matchesCategory && matchesStart && matchesEnd;
+  });
 
   return (
     <View style={styles.tabContainer}>
       <View style={styles.filterContainer}>
         <TouchableOpacity
-          style={[styles.filterButton, selectedType === 'ALL' && styles.activeFilterButton]}
-          onPress={() => setSelectedType('ALL')}
+          style={[styles.filterButton, selectedType === 'GERAL' && styles.activeFilterButton]}
+          onPress={() => setSelectedType('GERAL')}
         >
-          <Text style={[styles.filterText, selectedType === 'ALL' && styles.activeFilterText]}>Todos</Text>
+          <Text style={[styles.filterText, selectedType === 'GERAL' && styles.activeFilterText]}>Geral</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.filterButton, selectedType === 'GENERAL' && styles.activeFilterButton]}
-          onPress={() => setSelectedType('GENERAL')}
+          style={[styles.filterButton, selectedType === 'MENSAL' && styles.activeFilterButton]}
+          onPress={() => setSelectedType('MENSAL')}
         >
-          <Text style={[styles.filterText, selectedType === 'GENERAL' && styles.activeFilterText]}>Geral</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.filterButton, selectedType === 'MONTHLY' && styles.activeFilterButton]}
-          onPress={() => setSelectedType('MONTHLY')}
-        >
-          <Text style={[styles.filterText, selectedType === 'MONTHLY' && styles.activeFilterText]}>Mensal</Text>
+          <Text style={[styles.filterText, selectedType === 'MENSAL' && styles.activeFilterText]}>Mensal</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.headerContainer}>
         <Text style={styles.listTitle}>
-          {selectedType === 'ALL' ? 'Todas as despesas' :
-            selectedType === 'GENERAL' ? 'Despesas gerais' : 'Despesas mensais'}
+          {selectedType === 'GERAL' ? 'Despesas' : 'Despesas por mês'}
         </Text>
-        <TouchableOpacity style={styles.addButton}>
-          <Plus size={20} color="#2D6A4F" />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <TouchableOpacity style={styles.addButton} onPress={() => setFilterModalVisible(true)}>
+            <FilterIcon size={20} color="#2D6A4F" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
+            <Plus size={20} color="#2D6A4F" />
+          </TouchableOpacity>
+        </View>
       </View>
 
-      <FlatList
-        data={filteredExpenses}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <ExpenseCard expense={item} onDelete={handleDelete} />
-        )}
-        contentContainerStyle={styles.expensesList}
-      />
+      {selectedType === 'GERAL' && (
+        <FlatList
+          data={filteredExpenses}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <ExpenseCard
+              expense={item}
+              onDelete={handleDelete}
+              onPress={() => handleEditExpense(item)}
+            />
+          )}
+          contentContainerStyle={styles.expensesList}
+        />
+      )}
+      {selectedType === 'MENSAL' && (
+        <View style={styles.monthlyList}>
+          <View style={styles.yearSelector}>
+            <TouchableOpacity
+              onPress={() => {
+                const idx = availableYears.indexOf(selectedYear);
+                if (idx < availableYears.length - 1) setSelectedYear(availableYears[idx + 1]);
+              }}
+              disabled={availableYears.indexOf(selectedYear) === availableYears.length - 1}
+              style={styles.yearButton}
+            >
+              <AntDesign name="left" size={20} color={availableYears.indexOf(selectedYear) === availableYears.length - 1 ? '#ccc' : '#2D6A4F'} />
+            </TouchableOpacity>
+            <Text style={styles.yearLabel}>{selectedYear}</Text>
+            <TouchableOpacity
+              onPress={() => {
+                const idx = availableYears.indexOf(selectedYear);
+                if (idx > 0) setSelectedYear(availableYears[idx - 1]);
+              }}
+              disabled={availableYears.indexOf(selectedYear) === 0}
+              style={styles.yearButton}
+            >
+              <AntDesign name="right" size={20} color={availableYears.indexOf(selectedYear) === 0 ? '#ccc' : '#2D6A4F'} />
+            </TouchableOpacity>
+          </View>
+          {monthlySums.length === 0 && (
+            <Text style={{ textAlign: 'center', color: '#666', marginTop: 24 }}>Nenhuma despesa mensal encontrada.</Text>
+          )}
+          {monthlySums.map(({ year, month, total }) => (
+            <TouchableOpacity
+              key={`${year}-${month}`}
+              style={styles.monthItem}
+              onPress={() => setMonthModal({ month, year })}
+            >
+              <Text style={styles.monthLabel}>{MONTHS_PT[month]} {year}</Text>
+              <Text style={styles.monthTotal}>{total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Adicionar Despesa</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Nome da despesa"
+              value={form.title}
+              onChangeText={text => setForm({ ...form, title: text })}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Valor (ex: 100.00)"
+              keyboardType="numeric"
+              value={form.amount}
+              onChangeText={text => setForm({ ...form, amount: text })}
+            />
+            <View style={styles.inputRow}>
+              <Text style={styles.label}>Categoria:</Text>
+              <TouchableOpacity
+                style={styles.dropdownButton}
+                onPress={() => setForm({ ...form, showCategoryDropdown: !form.showCategoryDropdown })}
+              >
+                <Text style={styles.dropdownButtonText}>{form.category}</Text>
+              </TouchableOpacity>
+            </View>
+            {form.showCategoryDropdown && (
+              <View style={styles.dropdownList}>
+                {CATEGORIES.map(cat => (
+                  <TouchableOpacity
+                    key={cat}
+                    style={[
+                      styles.dropdownItem,
+                      form.category === cat && styles.dropdownItemSelected,
+                    ]}
+                    onPress={() => setForm({ ...form, category: cat, showCategoryDropdown: false })}
+                  >
+                    <Text style={{ color: form.category === cat ? '#2D6A4F' : '#333' }}>{cat}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+            <View style={styles.inputRow}>
+              <Text style={styles.label}>Data:</Text>
+              <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.dateButton}>
+                <Text style={styles.dateText}>{form.date.toLocaleDateString('pt-BR')}</Text>
+              </TouchableOpacity>
+            </View>
+            {showDatePicker && (
+              <View style={styles.calendarModal}>
+                <Calendar
+                  onDayPress={day => {
+                    setForm({ ...form, date: new Date(day.dateString) });
+                    setShowDatePicker(false);
+                  }}
+                  markedDates={{
+                    [form.date.toISOString().split('T')[0]]: {selected: true, selectedColor: '#2D6A4F'}
+                  }}
+                  theme={{
+                    selectedDayBackgroundColor: '#2D6A4F',
+                    todayTextColor: '#2D6A4F',
+                  }}
+                />
+                <TouchableOpacity style={styles.cancelButton} onPress={() => setShowDatePicker(false)}>
+                  <Text style={styles.cancelButtonText}>Cancelar</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            <TextInput
+              style={styles.input}
+              placeholder="Observação (opcional)"
+              value={form.description}
+              onChangeText={text => setForm({ ...form, description: text })}
+              multiline
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
+                <Text style={styles.cancelButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.saveButton} onPress={handleSaveExpense}>
+                <Text style={styles.saveButtonText}>Salvar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal de despesas do mês */}
+      <Modal
+        visible={!!monthModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setMonthModal(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { maxHeight: '80%' }]}> 
+            <Text style={styles.modalTitle}>
+              Despesas de {monthModal ? `${MONTHS_PT[monthModal.month]} de ${monthModal.year}` : ''}
+            </Text>
+            {expensesOfMonth.length === 0 ? (
+              <Text style={{ textAlign: 'center', color: '#666', marginTop: 24 }}>Nenhuma despesa encontrada.</Text>
+            ) : (
+              <FlatList
+                data={expensesOfMonth}
+                keyExtractor={item => item.id}
+                renderItem={({ item }) => (
+                  <ExpenseCard
+                    expense={item}
+                    onDelete={handleDelete}
+                    onPress={() => handleEditExpense(item)}
+                  />
+                )}
+                contentContainerStyle={{ paddingBottom: 20 }}
+              />
+            )}
+            <TouchableOpacity style={styles.cancelButton} onPress={() => setMonthModal(null)}>
+              <Text style={styles.cancelButtonText}>Fechar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal de filtro */}
+      <Modal
+        visible={filterModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setFilterModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Filtrar Despesas</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Nome da despesa"
+              value={filters.name}
+              onChangeText={text => setFilters(f => ({ ...f, name: text }))}
+            />
+            <View style={styles.inputRow}>
+              <Text style={styles.label}>Categoria:</Text>
+              <TouchableOpacity
+                style={styles.dropdownButton}
+                onPress={() => setShowCategoryDropdownFilter(v => !v)}
+              >
+                <Text style={styles.dropdownButtonText}>{filters.category || 'Todas'}</Text>
+              </TouchableOpacity>
+            </View>
+            {showCategoryDropdownFilter && (
+              <View style={styles.dropdownList}>
+                {CATEGORIES.map(cat => (
+                  <TouchableOpacity
+                    key={cat}
+                    style={[
+                      styles.dropdownItem,
+                      filters.category === cat && styles.dropdownItemSelected,
+                    ]}
+                    onPress={() => {
+                      setFilters(f => ({ ...f, category: cat }));
+                      setShowCategoryDropdownFilter(false);
+                    }}
+                  >
+                    <Text style={{ color: filters.category === cat ? '#2D6A4F' : '#333' }}>{cat}</Text>
+                  </TouchableOpacity>
+                ))}
+                <TouchableOpacity
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    setFilters(f => ({ ...f, category: '' }));
+                    setShowCategoryDropdownFilter(false);
+                  }}
+                >
+                  <Text style={{ color: '#333' }}>Todas</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            <View style={styles.inputRow}>
+              <Text style={styles.label}>Data início:</Text>
+              <TouchableOpacity onPress={() => setShowStartDatePicker(true)} style={styles.dateButton}>
+                <Text style={styles.dateText}>{filters.startDate ? filters.startDate.toLocaleDateString('pt-BR') : 'Qualquer'}</Text>
+              </TouchableOpacity>
+            </View>
+            {showStartDatePicker && (
+              <View style={styles.calendarModal}>
+                <Calendar
+                  onDayPress={day => {
+                    setFilters(f => ({ ...f, startDate: new Date(day.dateString) }));
+                    setShowStartDatePicker(false);
+                  }}
+                  markedDates={filters.startDate ? { [filters.startDate.toISOString().split('T')[0]]: {selected: true, selectedColor: '#2D6A4F'} } : {}}
+                  theme={{ selectedDayBackgroundColor: '#2D6A4F', todayTextColor: '#2D6A4F' }}
+                />
+                <TouchableOpacity style={styles.cancelButton} onPress={() => setShowStartDatePicker(false)}>
+                  <Text style={styles.cancelButtonText}>Cancelar</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            <View style={styles.inputRow}>
+              <Text style={styles.label}>Data final:</Text>
+              <TouchableOpacity onPress={() => setShowEndDatePicker(true)} style={styles.dateButton}>
+                <Text style={styles.dateText}>{filters.endDate ? filters.endDate.toLocaleDateString('pt-BR') : 'Qualquer'}</Text>
+              </TouchableOpacity>
+            </View>
+            {showEndDatePicker && (
+              <View style={styles.calendarModal}>
+                <Calendar
+                  onDayPress={day => {
+                    setFilters(f => ({ ...f, endDate: new Date(day.dateString) }));
+                    setShowEndDatePicker(false);
+                  }}
+                  markedDates={filters.endDate ? { [filters.endDate.toISOString().split('T')[0]]: {selected: true, selectedColor: '#2D6A4F'} } : {}}
+                  theme={{ selectedDayBackgroundColor: '#2D6A4F', todayTextColor: '#2D6A4F' }}
+                />
+                <TouchableOpacity style={styles.cancelButton} onPress={() => setShowEndDatePicker(false)}>
+                  <Text style={styles.cancelButtonText}>Cancelar</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.cancelButton} onPress={() => {
+                setFilters({ name: '', startDate: null, endDate: null, category: '' });
+                setFilterModalVisible(false);
+              }}>
+                <Text style={styles.cancelButtonText}>Limpar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.saveButton} onPress={() => setFilterModalVisible(false)}>
+                <Text style={styles.saveButtonText}>Aplicar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -184,6 +599,26 @@ export default function ActivitiesScreen() {
       </View>
     );
   };
+
+  // Configurar calendário para pt-br
+  LocaleConfig.locales['pt-br'] = {
+    monthNames: [
+      'Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+      'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'
+    ],
+    monthNamesShort: [
+      'Jan','Fev','Mar','Abr','Mai','Jun',
+      'Jul','Ago','Set','Out','Nov','Dez'
+    ],
+    dayNames: [
+      'Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'
+    ],
+    dayNamesShort: [
+      'Dom','Seg','Ter','Qua','Qui','Sex','Sáb'
+    ],
+    today: 'Hoje'
+  };
+  LocaleConfig.defaultLocale = 'pt-br';
 
   return (
     <SafeAreaView style={styles.container}>
@@ -308,5 +743,182 @@ const styles = StyleSheet.create({
   },
   expensesList: {
     paddingBottom: 20,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 24,
+    width: '90%',
+    elevation: 4,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 16,
+    color: '#2D6A4F',
+    textAlign: 'center',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#E6E6E6',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 12,
+    fontSize: 16,
+    color: '#333',
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  label: {
+    fontSize: 16,
+    color: '#333',
+    marginRight: 8,
+    minWidth: 80,
+  },
+  pickerContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  pickerItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: '#F0F0F0',
+    marginRight: 8,
+    marginBottom: 4,
+  },
+  pickerItemSelected: {
+    backgroundColor: '#D7F9E9',
+  },
+  dateButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: '#F0F0F0',
+  },
+  dateText: {
+    fontSize: 16,
+    color: '#2D6A4F',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 16,
+    gap: 12,
+  },
+  cancelButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#E6E6E6',
+  },
+  cancelButtonText: {
+    color: '#333',
+    fontWeight: '500',
+  },
+  saveButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#2D6A4F',
+  },
+  saveButtonText: {
+    color: 'white',
+    fontWeight: '700',
+  },
+  dropdownButton: {
+    borderWidth: 1,
+    borderColor: '#E6E6E6',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: '#F0F0F0',
+    minWidth: 180,
+  },
+  dropdownButtonText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  dropdownList: {
+    backgroundColor: 'white',
+    borderWidth: 1,
+    borderColor: '#E6E6E6',
+    borderRadius: 8,
+    marginBottom: 12,
+    marginLeft: 88,
+    minWidth: 180,
+    position: 'absolute',
+    zIndex: 10,
+    top: 160,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  dropdownItem: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
+  dropdownItemSelected: {
+    backgroundColor: '#D7F9E9',
+  },
+  calendarModal: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    alignSelf: 'center',
+    elevation: 4,
+    zIndex: 20,
+  },
+  monthlyList: {
+    marginTop: 16,
+  },
+  monthItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  monthLabel: {
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '500',
+  },
+  monthTotal: {
+    fontSize: 16,
+    color: '#2D6A4F',
+    fontWeight: '700',
+  },
+  yearSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    gap: 12,
+  },
+  yearButton: {
+    padding: 8,
+  },
+  yearLabel: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#2D6A4F',
+    marginHorizontal: 8,
   },
 });
