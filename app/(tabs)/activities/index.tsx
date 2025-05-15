@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert, Modal, TextInput, Platform, Pressable } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert, Modal, TextInput, Platform, Pressable, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TabView, SceneMap } from 'react-native-tab-view';
 import { ExpenseCard, Expense } from '@/components/expenses/ExpenseCard';
@@ -382,111 +382,113 @@ const ExpensesTab = () => {
         transparent
         onRequestClose={() => setModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Adicionar Despesa</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Nome da despesa"
-              value={form.title}
-              onChangeText={text => setForm({ ...form, title: text })}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Valor (ex: 100.00)"
-              keyboardType="numeric"
-              value={form.amount}
-              onChangeText={text => setForm({ ...form, amount: text })}
-            />
-            <View style={styles.inputRow}>
-              <Text style={styles.label}>Categoria:</Text>
-              <TouchableOpacity
-                style={styles.dropdownButton}
-                onPress={() => setForm({ ...form, showCategoryDropdown: !form.showCategoryDropdown })}
-              >
-                <Text style={styles.dropdownButtonText}>{form.category}</Text>
-              </TouchableOpacity>
-            </View>
-            {form.showCategoryDropdown && (
-              <View style={styles.dropdownList}>
-                {CATEGORIES.map(cat => (
-                  <TouchableOpacity
-                    key={cat}
-                    style={[
-                      styles.dropdownItem,
-                      form.category === cat && styles.dropdownItemSelected,
-                    ]}
-                    onPress={() => setForm({ ...form, category: cat, showCategoryDropdown: false })}
-                  >
-                    <Text style={{ color: form.category === cat ? '#2D6A4F' : '#333' }}>{cat}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-            <View style={styles.inputRow}>
-              <Text style={styles.label}>Data:</Text>
-              <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.dateButton}>
-                <Text style={styles.dateText}>{form.date.toLocaleDateString('pt-BR')}</Text>
-              </TouchableOpacity>
-            </View>
-            {showDatePicker && (
-              <View style={styles.calendarModal}>
-                <Calendar
-                  onDayPress={day => {
-                    setForm({ ...form, date: new Date(day.dateString) });
-                    setShowDatePicker(false);
-                  }}
-                  markedDates={{
-                    [form.date.toISOString().split('T')[0]]: {selected: true, selectedColor: '#2D6A4F'}
-                  }}
-                  theme={{
-                    selectedDayBackgroundColor: '#2D6A4F',
-                    todayTextColor: '#2D6A4F',
-                  }}
-                />
-                <TouchableOpacity style={styles.cancelButton} onPress={() => setShowDatePicker(false)}>
-                  <Text style={styles.cancelButtonText}>Cancelar</Text>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Adicionar Despesa</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Nome da despesa"
+                value={form.title}
+                onChangeText={text => setForm({ ...form, title: text })}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Valor (ex: 100.00)"
+                keyboardType="numeric"
+                value={form.amount}
+                onChangeText={text => setForm({ ...form, amount: text })}
+              />
+              <View style={styles.inputRow}>
+                <Text style={styles.label}>Categoria:</Text>
+                <TouchableOpacity
+                  style={styles.dropdownButton}
+                  onPress={() => setForm({ ...form, showCategoryDropdown: !form.showCategoryDropdown })}
+                >
+                  <Text style={styles.dropdownButtonText}>{form.category}</Text>
                 </TouchableOpacity>
               </View>
-            )}
-            <TextInput
-              style={styles.input}
-              placeholder="Observação (opcional)"
-              value={form.description}
-              onChangeText={text => setForm({ ...form, description: text })}
-              multiline
-            />
-            <View style={styles.inputRow}>
-              <Text style={styles.label}>Forma de pagamento:</Text>
-              <TouchableOpacity
-                style={[styles.dropdownButton, { minWidth: 120 }]}
-                onPress={() => setForm(f => ({ ...f, paymentMethod: f.paymentMethod === 'Dinheiro' ? 'Cartão de Crédito' : 'Dinheiro' }))}
-              >
-                <Text style={styles.dropdownButtonText}>{form.paymentMethod}</Text>
-              </TouchableOpacity>
-            </View>
-            {form.paymentMethod === 'Cartão de Crédito' && (
+              {form.showCategoryDropdown && (
+                <View style={styles.dropdownList}>
+                  {CATEGORIES.map(cat => (
+                    <TouchableOpacity
+                      key={cat}
+                      style={[
+                        styles.dropdownItem,
+                        form.category === cat && styles.dropdownItemSelected,
+                      ]}
+                      onPress={() => setForm({ ...form, category: cat, showCategoryDropdown: false })}
+                    >
+                      <Text style={{ color: form.category === cat ? '#2D6A4F' : '#333' }}>{cat}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
               <View style={styles.inputRow}>
-                <Text style={styles.label}>Parcelas:</Text>
-                <TextInput
-                  style={[styles.input, { flex: 1, marginBottom: 0 }]}
-                  placeholder="Quantidade de parcelas"
-                  keyboardType="numeric"
-                  value={form.installments}
-                  onChangeText={text => setForm({ ...form, installments: text.replace(/[^0-9]/g, '') })}
-                />
+                <Text style={styles.label}>Data:</Text>
+                <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.dateButton}>
+                  <Text style={styles.dateText}>{form.date.toLocaleDateString('pt-BR')}</Text>
+                </TouchableOpacity>
               </View>
-            )}
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
-                <Text style={styles.cancelButtonText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.saveButton} onPress={handleSaveExpense}>
-                <Text style={styles.saveButtonText}>Salvar</Text>
-              </TouchableOpacity>
+              {showDatePicker && (
+                <View style={styles.calendarModal}>
+                  <Calendar
+                    onDayPress={day => {
+                      setForm({ ...form, date: new Date(day.dateString) });
+                      setShowDatePicker(false);
+                    }}
+                    markedDates={{
+                      [form.date.toISOString().split('T')[0]]: {selected: true, selectedColor: '#2D6A4F'}
+                    }}
+                    theme={{
+                      selectedDayBackgroundColor: '#2D6A4F',
+                      todayTextColor: '#2D6A4F',
+                    }}
+                  />
+                  <TouchableOpacity style={styles.cancelButton} onPress={() => setShowDatePicker(false)}>
+                    <Text style={styles.cancelButtonText}>Cancelar</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+              <TextInput
+                style={styles.input}
+                placeholder="Observação (opcional)"
+                value={form.description}
+                onChangeText={text => setForm({ ...form, description: text })}
+                multiline
+              />
+              <View style={styles.inputRow}>
+                <Text style={styles.label}>Forma de pagamento:</Text>
+                <TouchableOpacity
+                  style={[styles.dropdownButton, { minWidth: 120 }]}
+                  onPress={() => setForm(f => ({ ...f, paymentMethod: f.paymentMethod === 'Dinheiro' ? 'Cartão de Crédito' : 'Dinheiro' }))}
+                >
+                  <Text style={styles.dropdownButtonText}>{form.paymentMethod}</Text>
+                </TouchableOpacity>
+              </View>
+              {form.paymentMethod === 'Cartão de Crédito' && (
+                <View style={styles.inputRow}>
+                  <Text style={styles.label}>Parcelas:</Text>
+                  <TextInput
+                    style={[styles.input, { flex: 1, marginBottom: 0 }]}
+                    placeholder="Quantidade de parcelas"
+                    keyboardType="numeric"
+                    value={form.installments}
+                    onChangeText={text => setForm({ ...form, installments: text.replace(/[^0-9]/g, '') })}
+                  />
+                </View>
+              )}
+              <View style={styles.modalActions}>
+                <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
+                  <Text style={styles.cancelButtonText}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.saveButton} onPress={handleSaveExpense}>
+                  <Text style={styles.saveButtonText}>Salvar</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
+        </TouchableWithoutFeedback>
       </Modal>
 
       {/* Modal de despesas do mês */}

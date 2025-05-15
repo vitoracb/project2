@@ -5,7 +5,8 @@ import {
   Text, 
   StyleSheet, 
   FlatList, 
-  TouchableOpacity 
+  TouchableOpacity,
+  Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatCard } from '@/components/dashboard/StatCard';
@@ -21,6 +22,7 @@ import {
   Plus,
   ChevronRight
 } from 'lucide-react-native';
+import { AddExpenseModal } from '@/components/expenses/AddExpenseModal';
 
 // Mock data for the dashboard
 const mockActivities: Activity[] = [
@@ -54,6 +56,13 @@ const mockActivities: Activity[] = [
 ];
 
 export default function HomeScreen() {
+  const [expenseModalVisible, setExpenseModalVisible] = React.useState(false);
+
+  const handleSaveExpense = (expense: any) => {
+    // Aqui você pode integrar com backend, estado global, etc.
+    Alert.alert('Confirmação', 'Despesa adicionada com sucesso!');
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -135,7 +144,7 @@ export default function HomeScreen() {
         <View style={styles.quickActions}>
           <Text style={styles.sectionTitle}>Ações rápidas</Text>
           <View style={styles.actionsContainer}>
-            <TouchableOpacity style={styles.actionButton}>
+            <TouchableOpacity style={styles.actionButton} onPress={() => setExpenseModalVisible(true)}>
               <View style={[styles.actionIcon, styles.expenseIcon]}>
                 <DollarSign size={20} color="#2D6A4F" />
               </View>
@@ -165,6 +174,11 @@ export default function HomeScreen() {
           </View>
         </View>
       </ScrollView>
+      <AddExpenseModal
+        visible={expenseModalVisible}
+        onClose={() => setExpenseModalVisible(false)}
+        onSave={handleSaveExpense}
+      />
     </SafeAreaView>
   );
 }
