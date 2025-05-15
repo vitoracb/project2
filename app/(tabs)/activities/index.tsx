@@ -1286,27 +1286,20 @@ const FlowTabContent = React.memo(({
         </View>
       </View>
       {/* Gráfico de pizza das despesas por categoria */}
-      {pieData.length > 0 ? (
-        <View style={{ marginTop: 24, alignItems: 'center' }}>
-          <PieChart
-            data={pieData}
-            width={Dimensions.get('window').width - 32}
-            height={180}
-            chartConfig={{
-              color: () => '#333',
-            }}
-            accessor="population"
-            backgroundColor="transparent"
-            paddingLeft="0"
-            absolute
-          />
-          <Text style={{ marginTop: 8, color: '#333', fontWeight: '500' }}>
-            Despesas por categoria ({mode === 'MENSAL' ? 'Mensal' : 'Anual'})
-          </Text>
-        </View>
-      ) : (
-        <Text style={{ marginTop: 24, textAlign: 'center', color: '#666' }}>Nenhuma despesa para exibir no gráfico.</Text>
-      )}
+      <View style={{ marginTop: 24, alignItems: 'center', width: '100%' }}>
+        <PieChart
+          data={pieData}
+          width={Dimensions.get('window').width - 32}
+          height={180}
+          chartConfig={{
+            color: () => '#333',
+          }}
+          accessor="population"
+          backgroundColor="transparent"
+          paddingLeft="0"
+          absolute
+        />
+      </View>
       {/* Gráfico de barras das despesas mensais */}
       <View style={{ width: '100%', alignItems: 'center' }}>
         <BarChart
@@ -1368,23 +1361,27 @@ function FlowTab(props: any) {
     return acc;
   }, {});
 
+  const totalPie = Object.values(despesasPorCategoria).reduce((sum: number, v) => sum + (v as number), 0);
   const pieData = Object.entries(despesasPorCategoria)
     .filter(([_, value]) => (value as number) > 0)
-    .map(([category, value], i) => ({
-      name: category,
-      population: value as number,
-      color: [
-        '#B02A37', // vermelho
-        '#146C43', // verde
-        '#B68900', // amarelo
-        '#0D47A1', // azul escuro
-        '#6C584C', // marrom
-        '#A3A847', // verde claro
-        '#7C4700', // marrom escuro
-      ][i % 7],
-      legendFontColor: '#333',
-      legendFontSize: 13,
-    }));
+    .map(([category, value], i) => {
+      const percent = totalPie > 0 ? Math.round(((value as number) / totalPie) * 100) : 0;
+      return {
+        name: `${category} (${percent}%)`,
+        population: value as number,
+        color: [
+          '#B02A37', // vermelho
+          '#146C43', // verde
+          '#B68900', // amarelo
+          '#0D47A1', // azul escuro
+          '#6C584C', // marrom
+          '#A3A847', // verde claro
+          '#7C4700', // marrom escuro
+        ][i % 7],
+        legendFontColor: '#333',
+        legendFontSize: 13,
+      };
+    });
 
   // Gráfico de barras das despesas mensais do ano selecionado
   const despesasPorMes = Array(12).fill(0);
@@ -1421,52 +1418,6 @@ function FlowTab(props: any) {
       MONTHS_PT={MONTHS_PT}
       styles={styles}
     />
-  );
-}
-
-// Wrapper para controle manual e forçado do scroll na aba Fluxo
-function FlowTabScrollWrapper(props: any) {
-  const scrollRef = useRef<import('react-native').ScrollView>(null);
-  const scrollYRef = useRef(0);
-  const [restoreScroll, setRestoreScroll] = useState(false);
-
-  // Salva a posição do scroll
-  const handleScroll = (e: any) => {
-    scrollYRef.current = e.nativeEvent.contentOffset.y;
-  };
-
-  // Sempre que mudar modo, mês ou ano, ativa restauração
-  React.useEffect(() => {
-    setRestoreScroll(true);
-  }, [props.mode, props.selectedMonth, props.selectedYear]);
-
-  // Após render/layout, restaura a posição do scroll
-  useLayoutEffect(() => {
-    if (restoreScroll && scrollRef.current) {
-      setTimeout(() => {
-        // @ts-ignore
-        if (scrollRef.current && typeof scrollRef.current.scrollTo === 'function') {
-          // @ts-ignore
-          scrollRef.current.scrollTo({ y: scrollYRef.current, animated: false });
-        }
-      }, 0);
-      setRestoreScroll(false);
-    }
-  }, [restoreScroll, props]);
-
-  return (
-    <ScrollView
-      ref={scrollRef}
-      style={{ flex: 1 }}
-      contentContainerStyle={{ flexGrow: 1, paddingBottom: 32 }}
-      showsVerticalScrollIndicator={true}
-      onScroll={handleScroll}
-      scrollEventThrottle={16}
-    >
-      <View style={{ minHeight: 700 }}>
-        <FlowTab {...props} />
-      </View>
-    </ScrollView>
   );
 }
 
@@ -1513,23 +1464,29 @@ export default function ActivitiesScreen() {
           </TouchableOpacity>
         ))}
       </View>
-      <View style={[styles.tabContainer, { minHeight: '100%', flexGrow: 1 }]}> 
+      <ScrollView
+        style={[styles.tabContainer, { minHeight: '100%', flexGrow: 1 }]}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: 32 }}
+        showsVerticalScrollIndicator={true}
+      >
         {activeTab === 'expenses' && <ExpensesTab expenses={expenses} setExpenses={setExpenses} />}
         {activeTab === 'incomes' && <IncomesTab incomes={incomes} setIncomes={setIncomes} />}
         {activeTab === 'flow' && (
-          <FlowTabScrollWrapper
-            expenses={expenses}
-            incomes={incomes}
-            mode={mode}
-            setMode={setMode}
-            selectedMonth={selectedMonth}
-            setSelectedMonth={setSelectedMonth}
-            selectedYear={selectedYear}
-            setSelectedYear={setSelectedYear}
-          />
+          <View style={{ minHeight: 700 }}>
+            <FlowTab
+              expenses={expenses}
+              incomes={incomes}
+              mode={mode}
+              setMode={setMode}
+              selectedMonth={selectedMonth}
+              setSelectedMonth={setSelectedMonth}
+              selectedYear={selectedYear}
+              setSelectedYear={setSelectedYear}
+            />
+          </View>
         )}
         {activeTab === 'schedule' && <ScheduleTab />}
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
