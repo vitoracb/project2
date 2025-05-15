@@ -1286,7 +1286,7 @@ const FlowTabContent = React.memo(({
         </View>
       </View>
       {/* Gráfico de pizza das despesas por categoria */}
-      <View style={{ marginTop: 24, alignItems: 'center', width: '100%' }}>
+      <View style={{ marginTop: 24, flexDirection: 'row', width: '100%', justifyContent: 'center', alignItems: 'center' }}>
         <PieChart
           data={pieData}
           width={Dimensions.get('window').width - 32}
@@ -1298,6 +1298,7 @@ const FlowTabContent = React.memo(({
           backgroundColor="transparent"
           paddingLeft="0"
           absolute
+          center={[-80, 0]}
         />
       </View>
       {/* Gráfico de barras das despesas mensais */}
@@ -1421,12 +1422,93 @@ function FlowTab(props: any) {
   );
 }
 
-const ScheduleTab = () => (
-  <View style={styles.tabContainer}>
-    <Text style={styles.tabTitle}>Resumo</Text>
-    <Text>Conteúdo da aba Resumo</Text>
+const MONTHS_SHORT_PT = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+
+const ScheduleTab = () => {
+  const [selectedYear, setSelectedYear] = useState(2025);
+  // Estado: { [ano]: { [membro]: { [mes]: boolean } } }
+  const [payments, setPayments] = useState<{ [year: number]: { [member: string]: { [month: number]: boolean } } }>({});
+
+  // Inicializa membros para o ano se não existir
+  useEffect(() => {
+    setPayments(prev => {
+      if (!prev[selectedYear]) {
+        const yearData: { [member: string]: { [month: number]: boolean } } = {};
+        GROUP_MEMBERS.forEach(member => {
+          yearData[member] = {};
+        });
+        return { ...prev, [selectedYear]: yearData };
+      }
+      return prev;
+    });
+  }, [selectedYear]);
+
+  const togglePayment = (member: string, month: number) => {
+    setPayments(prev => ({
+      ...prev,
+      [selectedYear]: {
+        ...prev[selectedYear],
+        [member]: {
+          ...prev[selectedYear][member],
+          [month]: !prev[selectedYear][member]?.[month],
+        },
+      },
+    }));
+  };
+
+  return (
+    <View style={styles.tabContainer}>
+      <Text style={styles.tabTitle}>Controle de Mensalidades</Text>
+      {/* Navegação de ano */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+        <TouchableOpacity onPress={() => setSelectedYear(y => y - 1)} style={styles.yearButton}>
+          <AntDesign name="left" size={20} color="#2D6A4F" />
+        </TouchableOpacity>
+        <Text style={styles.yearLabel}>{selectedYear}</Text>
+        <TouchableOpacity onPress={() => setSelectedYear(y => y + 1)} style={styles.yearButton}>
+          <AntDesign name="right" size={20} color="#2D6A4F" />
+        </TouchableOpacity>
       </View>
-);
+      {/* Tabela */}
+      <ScrollView horizontal style={{ marginBottom: 16 }}>
+        <View>
+          {/* Cabeçalho */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F0F0F0', borderTopLeftRadius: 8, borderTopRightRadius: 8 }}>
+            <View style={{ width: 120, padding: 8 }}>
+              <Text style={{ fontWeight: '700', color: '#333' }}>Membro</Text>
+            </View>
+            {MONTHS_SHORT_PT.map((m, i) => (
+              <View key={m} style={{ width: 48, padding: 8, alignItems: 'center' }}>
+                <Text style={{ fontWeight: '700', color: '#333' }}>{m}</Text>
+              </View>
+            ))}
+          </View>
+          {/* Linhas dos membros */}
+          {GROUP_MEMBERS.map(member => (
+            <View key={member} style={{ flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderColor: '#eee', backgroundColor: '#fff' }}>
+              <View style={{ width: 120, padding: 8 }}>
+                <Text style={{ color: '#333' }}>{member}</Text>
+              </View>
+              {MONTHS_SHORT_PT.map((_, monthIdx) => (
+                <TouchableOpacity
+                  key={monthIdx}
+                  style={{ width: 48, height: 40, alignItems: 'center', justifyContent: 'center' }}
+                  onPress={() => togglePayment(member, monthIdx)}
+                >
+                  <View style={{ width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: payments[selectedYear]?.[member]?.[monthIdx] ? '#2D6A4F' : '#ccc', backgroundColor: payments[selectedYear]?.[member]?.[monthIdx] ? '#2D6A4F' : '#fff', alignItems: 'center', justifyContent: 'center' }}>
+                    {payments[selectedYear]?.[member]?.[monthIdx] && (
+                      <AntDesign name="check" size={16} color="#fff" />
+                    )}
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+    </View>
+  );
+};
 
 export default function ActivitiesScreen() {
   const [activeTab, setActiveTab] = useState<'expenses' | 'incomes' | 'flow' | 'schedule'>('expenses');
