@@ -56,9 +56,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="activities/index"
         options={{
-          title: 'Atividades',
+          title: 'Financeiro',
           tabBarIcon: ({ color, size }) => <CalendarClock size={size} color={color} />,
-          tabBarLabel: 'Atividades',
+          tabBarLabel: 'Financeiro',
         }}
       />
       <Tabs.Screen
@@ -93,8 +93,8 @@ const styles = StyleSheet.create({
   tabBar: {
     backgroundColor: '#FFFFFF',
     borderTopColor: '#E6E6E6',
-    height: 60,
-    paddingBottom: 10,
+    height: 80,
+    paddingBottom: 36,
     marginBottom: 0,
     paddingTop: 5,
   },

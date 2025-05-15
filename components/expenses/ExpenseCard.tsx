@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
-import { DollarSign, Calendar, CircleCheck as CheckCircle2, Circle as XCircle } from 'lucide-react-native';
+import { DollarSign, Calendar, CircleCheck as CheckCircle2, Circle as XCircle, Trash2 } from 'lucide-react-native';
 
 export type ExpenseType = 'GENERAL' | 'MONTHLY';
 
@@ -26,9 +26,10 @@ export interface Expense {
 interface ExpenseCardProps {
   expense: Expense;
   onPress?: () => void;
+  onDelete?: (id: string) => void;
 }
 
-export function ExpenseCard({ expense, onPress }: ExpenseCardProps) {
+export function ExpenseCard({ expense, onPress, onDelete }: ExpenseCardProps) {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -58,11 +59,22 @@ export function ExpenseCard({ expense, onPress }: ExpenseCardProps) {
               <Text style={styles.category}>{expense.category}</Text>
             )}
           </View>
-          <Badge 
-            text={expense.type === 'MONTHLY' ? 'Mensal' : 'Geral'} 
-            variant={expense.type === 'MONTHLY' ? 'primary' : 'secondary'}
-            style={styles.badge}
-          />
+          <View style={styles.actionsRight}>
+            <Badge 
+              text={expense.type === 'MONTHLY' ? 'Mensal' : 'Geral'} 
+              variant={expense.type === 'MONTHLY' ? 'primary' : 'secondary'}
+              style={styles.badge}
+            />
+            {onDelete && (
+              <TouchableOpacity
+                style={styles.trashButton}
+                onPress={() => onDelete(expense.id)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Trash2 size={20} color="#DC2626" />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
         {expense.description && (
           <Text style={styles.description} numberOfLines={2}>
@@ -186,5 +198,16 @@ const styles = StyleSheet.create({
   userText: {
     fontSize: 12,
     color: '#6C584C',
+  },
+  trashButton: {
+    marginLeft: 12,
+    padding: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  actionsRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 8,
   },
 });

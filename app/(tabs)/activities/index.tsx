@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TabView, SceneMap } from 'react-native-tab-view';
 import { ExpenseCard, Expense, ExpenseType } from '@/components/expenses/ExpenseCard';
@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Plus } from 'lucide-react-native';
 
 // Mock data for expenses
-const mockExpenses: Expense[] = [
+const initialExpenses: Expense[] = [
   {
     id: '1',
     title: 'Tractor Maintenance',
@@ -57,51 +57,67 @@ const mockExpenses: Expense[] = [
   }
 ];
 
-// Tab scenes
 const ExpensesTab = () => {
+  const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
   const [selectedType, setSelectedType] = useState<ExpenseType | 'ALL'>('ALL');
-  
-  const filteredExpenses = selectedType === 'ALL' 
-    ? mockExpenses 
-    : mockExpenses.filter(expense => expense.type === selectedType);
-  
+
+  const handleDelete = (id: string) => {
+    Alert.alert(
+      'Excluir despesa',
+      'Tem certeza que deseja excluir esta despesa?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Excluir', style: 'destructive', onPress: () => {
+            setExpenses(prev => prev.filter(exp => exp.id !== id));
+          }
+        },
+      ]
+    );
+  };
+
+  const filteredExpenses = selectedType === 'ALL'
+    ? expenses
+    : expenses.filter(expense => expense.type === selectedType);
+
   return (
     <View style={styles.tabContainer}>
       <View style={styles.filterContainer}>
-        <TouchableOpacity 
-          style={[styles.filterButton, selectedType === 'ALL' && styles.activeFilterButton]} 
+        <TouchableOpacity
+          style={[styles.filterButton, selectedType === 'ALL' && styles.activeFilterButton]}
           onPress={() => setSelectedType('ALL')}
         >
           <Text style={[styles.filterText, selectedType === 'ALL' && styles.activeFilterText]}>Todos</Text>
         </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.filterButton, selectedType === 'GENERAL' && styles.activeFilterButton]} 
+        <TouchableOpacity
+          style={[styles.filterButton, selectedType === 'GENERAL' && styles.activeFilterButton]}
           onPress={() => setSelectedType('GENERAL')}
         >
           <Text style={[styles.filterText, selectedType === 'GENERAL' && styles.activeFilterText]}>Geral</Text>
         </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.filterButton, selectedType === 'MONTHLY' && styles.activeFilterButton]} 
+        <TouchableOpacity
+          style={[styles.filterButton, selectedType === 'MONTHLY' && styles.activeFilterButton]}
           onPress={() => setSelectedType('MONTHLY')}
         >
           <Text style={[styles.filterText, selectedType === 'MONTHLY' && styles.activeFilterText]}>Mensal</Text>
         </TouchableOpacity>
       </View>
-      
+
       <View style={styles.headerContainer}>
         <Text style={styles.listTitle}>
-          {selectedType === 'ALL' ? 'Todas as despesas' : 
-           selectedType === 'GENERAL' ? 'Despesas gerais' : 'Despesas mensais'}
+          {selectedType === 'ALL' ? 'Todas as despesas' :
+            selectedType === 'GENERAL' ? 'Despesas gerais' : 'Despesas mensais'}
         </Text>
         <TouchableOpacity style={styles.addButton}>
           <Plus size={20} color="#2D6A4F" />
         </TouchableOpacity>
       </View>
-      
+
       <FlatList
         data={filteredExpenses}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <ExpenseCard expense={item} />}
+        renderItem={({ item }) => (
+          <ExpenseCard expense={item} onDelete={handleDelete} />
+        )}
         contentContainerStyle={styles.expensesList}
       />
     </View>
@@ -110,8 +126,8 @@ const ExpensesTab = () => {
 
 const ClosingTab = () => (
   <View style={styles.tabContainer}>
-    <Text style={styles.tabTitle}>Fechamento Anual</Text>
-    <Text>Conteúdo da aba Fechamento Anual</Text>
+    <Text style={styles.tabTitle}>Receita</Text>
+    <Text>Conteúdo da aba Receita</Text>
   </View>
 );
 
@@ -124,8 +140,8 @@ const FlowTab = () => (
 
 const ScheduleTab = () => (
   <View style={styles.tabContainer}>
-    <Text style={styles.tabTitle}>Agenda</Text>
-    <Text>Conteúdo da aba Agenda</Text>
+    <Text style={styles.tabTitle}>Resumo</Text>
+    <Text>Conteúdo da aba Resumo</Text>
   </View>
 );
 
@@ -141,9 +157,9 @@ export default function ActivitiesScreen() {
   const [index, setIndex] = useState(0);
   const [routes] = useState([
     { key: 'expenses', title: 'Despesas' },
-    { key: 'closing', title: 'Fechamento' },
+    { key: 'closing', title: 'Receita' },
     { key: 'flow', title: 'Fluxo' },
-    { key: 'schedule', title: 'Agenda' },
+    { key: 'schedule', title: 'Resumo' },
   ]);
 
   // Custom tab bar
@@ -172,7 +188,7 @@ export default function ActivitiesScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Atividades</Text>
+        <Text style={styles.title}>Financeiro</Text>
       </View>
       
       <TabView
