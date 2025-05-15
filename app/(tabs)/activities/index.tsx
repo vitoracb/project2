@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, type FC } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert, Modal, TextInput, Platform, Pressable, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { TabView, SceneMap } from 'react-native-tab-view';
+import { TabView } from 'react-native-tab-view';
 import { ExpenseCard, Expense } from '@/components/expenses/ExpenseCard';
 import { Button } from '@/components/ui/Button';
 import { Plus, Filter as FilterIcon, DollarSign, Trash2, Calendar } from 'lucide-react-native';
@@ -89,8 +89,7 @@ const GROUP_MEMBERS = [
   'Rodrigo',
 ];
 
-const ExpensesTab = () => {
-  const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
+const ExpensesTab: FC<{ expenses: Expense[]; setExpenses: React.Dispatch<React.SetStateAction<Expense[]>> }> = ({ expenses, setExpenses }) => {
   const [selectedType, setSelectedType] = useState<'GERAL' | 'MENSAL'>('GERAL');
   const [modalVisible, setModalVisible] = useState(false);
   const [form, setForm] = useState({
@@ -660,8 +659,8 @@ const ExpensesTab = () => {
   );
 };
 
-const IncomesTab = () => {
-  const [incomes, setIncomes] = useState<any[]>([]);
+const IncomesTab: FC<{ incomes: any[]; setIncomes: React.Dispatch<React.SetStateAction<any[]>> }> = ({ incomes, setIncomes }) => {
+  const [selectedType, setSelectedType] = useState<'GERAL' | 'MENSAL'>('GERAL');
   const [modalVisible, setModalVisible] = useState(false);
   const [form, setForm] = useState({
     title: '',
@@ -674,7 +673,6 @@ const IncomesTab = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showMembersDropdown, setShowMembersDropdown] = useState(false);
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
-  const [selectedType, setSelectedType] = useState<'GERAL' | 'MENSAL'>('GERAL');
   const [monthModal, setMonthModal] = useState<{month: number, year: number} | null>(null);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [filters, setFilters] = useState({
@@ -1194,19 +1192,95 @@ const IncomesTab = () => {
   );
 };
 
-const ClosingTab = () => (
-  <View style={styles.tabContainer}>
-    <Text style={styles.tabTitle}>Receita</Text>
-    <Text>Conteúdo da aba Receita</Text>
-  </View>
-);
+const FlowTab: FC<{ expenses: Expense[]; incomes: any[] }> = ({ expenses, incomes }) => {
+  // Alternância mensal/anual
+  const [mode, setMode] = useState<'MENSAL' | 'ANUAL'>('MENSAL');
+  const now = new Date();
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
 
-const FlowTab = () => (
-  <View style={styles.tabContainer}>
-    <Text style={styles.tabTitle}>Fluxo de Caixa</Text>
-    <Text>Conteúdo da aba Fluxo de Caixa</Text>
-  </View>
-);
+  // Filtros
+  const expensesFiltered = expenses.filter(exp => {
+    const d = new Date(exp.date);
+    if (mode === 'MENSAL') {
+      return d.getFullYear() === selectedYear && d.getMonth() === selectedMonth;
+    } else {
+      return d.getFullYear() === selectedYear;
+    }
+  });
+  const incomesFiltered = incomes.filter(inc => {
+    const d = new Date(inc.date);
+    if (mode === 'MENSAL') {
+      return d.getFullYear() === selectedYear && d.getMonth() === selectedMonth;
+    } else {
+      return d.getFullYear() === selectedYear;
+    }
+  });
+
+  // Somatórios
+  const totalDespesas = expensesFiltered.reduce((sum, exp) => sum + exp.amount, 0);
+  const totalReceitas = incomesFiltered.reduce((sum, inc) => sum + inc.amount, 0);
+  const saldo = totalReceitas - totalDespesas;
+
+  // UI
+  return (
+    <View style={styles.tabContainer}>
+      {/* Alternância mensal/anual */}
+      <View style={styles.filterContainer}>
+        <TouchableOpacity
+          style={[styles.filterButton, mode === 'MENSAL' && styles.activeFilterButton]}
+          onPress={() => setMode('MENSAL')}
+        >
+          <Text style={[styles.filterText, mode === 'MENSAL' && styles.activeFilterText]}>Mensal</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.filterButton, mode === 'ANUAL' && styles.activeFilterButton]}
+          onPress={() => setMode('ANUAL')}
+        >
+          <Text style={[styles.filterText, mode === 'ANUAL' && styles.activeFilterText]}>Anual</Text>
+        </TouchableOpacity>
+      </View>
+      {/* Seleção de mês/ano ou só ano */}
+      <View style={styles.yearSelector}>
+        {mode === 'MENSAL' && (
+          <>
+            <TouchableOpacity onPress={() => setSelectedMonth(m => (m > 0 ? m - 1 : 11))} style={styles.yearButton}>
+              <AntDesign name="left" size={20} color={selectedMonth === 0 ? '#ccc' : '#2D6A4F'} />
+            </TouchableOpacity>
+            <Text style={styles.yearLabel}>{MONTHS_PT[selectedMonth]}</Text>
+            <TouchableOpacity onPress={() => setSelectedMonth(m => (m < 11 ? m + 1 : 0))} style={styles.yearButton}>
+              <AntDesign name="right" size={20} color={selectedMonth === 11 ? '#ccc' : '#2D6A4F'} />
+            </TouchableOpacity>
+          </>
+        )}
+        <TouchableOpacity onPress={() => setSelectedYear(y => y - 1)} style={styles.yearButton}>
+          <AntDesign name="left" size={20} color="#2D6A4F" />
+        </TouchableOpacity>
+        <Text style={styles.yearLabel}>{selectedYear}</Text>
+        <TouchableOpacity onPress={() => setSelectedYear(y => y + 1)} style={styles.yearButton}>
+          <AntDesign name="right" size={20} color="#2D6A4F" />
+        </TouchableOpacity>
+      </View>
+      {/* Cards de somatório */}
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 24, gap: 12 }}>
+        <View style={{ flex: 1, minWidth: 0, backgroundColor: '#F8D7DA', borderRadius: 12, padding: 16, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ color: '#B02A37', fontWeight: '700', fontSize: 16 }}>Despesas</Text>
+          <Text style={{ color: '#B02A37', fontWeight: '700', fontSize: 22, marginTop: 8 }} numberOfLines={1} ellipsizeMode="tail">{totalDespesas.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</Text>
+        </View>
+        <View style={{ flex: 1, minWidth: 0, backgroundColor: '#D1E7DD', borderRadius: 12, padding: 16, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ color: '#146C43', fontWeight: '700', fontSize: 16 }}>Receitas</Text>
+          <Text style={{ color: '#146C43', fontWeight: '700', fontSize: 22, marginTop: 8 }} numberOfLines={1} ellipsizeMode="tail">{totalReceitas.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</Text>
+        </View>
+      </View>
+      <View style={{ marginTop: 12 }}>
+        <View style={{ backgroundColor: saldo >= 0 ? '#D1E7FF' : '#FFF3CD', borderRadius: 12, padding: 16, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ color: saldo >= 0 ? '#0D47A1' : '#B68900', fontWeight: '700', fontSize: 15 }}>Saldo</Text>
+          <Text style={{ color: saldo >= 0 ? '#0D47A1' : '#B68900', fontWeight: '700', fontSize: 20, marginTop: 8 }} numberOfLines={1} ellipsizeMode="tail">{saldo.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</Text>
+        </View>
+      </View>
+    </View>
+  );
+};
 
 const ScheduleTab = () => (
   <View style={styles.tabContainer}>
@@ -1214,14 +1288,6 @@ const ScheduleTab = () => (
     <Text>Conteúdo da aba Resumo</Text>
   </View>
 );
-
-// Scene map for tab view
-const renderScene = SceneMap({
-  expenses: ExpensesTab,
-  incomes: IncomesTab,
-  flow: FlowTab,
-  schedule: ScheduleTab,
-});
 
 export default function ActivitiesScreen() {
   const [index, setIndex] = useState(0);
@@ -1231,6 +1297,9 @@ export default function ActivitiesScreen() {
     { key: 'flow', title: 'Fluxo' },
     { key: 'schedule', title: 'Resumo' },
   ]);
+
+  const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
+  const [incomes, setIncomes] = useState<any[]>([]);
 
   // Custom tab bar
   const renderTabBar = (props: any) => {
@@ -1283,7 +1352,20 @@ export default function ActivitiesScreen() {
       
       <TabView
         navigationState={{ index, routes }}
-        renderScene={renderScene}
+        renderScene={({ route }) => {
+          switch (route.key) {
+            case 'expenses':
+              return <ExpensesTab expenses={expenses} setExpenses={setExpenses} />;
+            case 'incomes':
+              return <IncomesTab incomes={incomes} setIncomes={setIncomes} />;
+            case 'flow':
+              return <FlowTab expenses={expenses} incomes={incomes} />;
+            case 'schedule':
+              return <ScheduleTab />;
+            default:
+              return null;
+          }
+        }}
         onIndexChange={setIndex}
         renderTabBar={renderTabBar}
       />
