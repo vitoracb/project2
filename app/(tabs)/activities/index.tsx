@@ -4,9 +4,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { TabView, SceneMap } from 'react-native-tab-view';
 import { ExpenseCard, Expense } from '@/components/expenses/ExpenseCard';
 import { Button } from '@/components/ui/Button';
-import { Plus, Filter as FilterIcon } from 'lucide-react-native';
-import { Calendar, LocaleConfig } from 'react-native-calendars';
+import { Plus, Filter as FilterIcon, DollarSign, Trash2, Calendar } from 'lucide-react-native';
+import { Calendar as ReactNativeCalendar, LocaleConfig } from 'react-native-calendars';
 import { AntDesign } from '@expo/vector-icons';
+import { Card } from '@/components/ui/Card';
 
 // Mock data for expenses
 const initialExpenses: Expense[] = [
@@ -55,20 +56,37 @@ const initialExpenses: Expense[] = [
   }
 ];
 
-const CATEGORIES = [
-  'Mensalidade',
-  'Taxa Extra',
+const EXPENSE_CATEGORIES = [
   'Funcionário',
   'Insumos',
   'Infraestrutura',
   'Maquinário',
   'Mão de Obra',
+  'E-Social',
+  'Outros',
+];
+
+const INCOME_CATEGORIES = [
+  'Mensalidade',
+  'Taxa extra',
+  'E-Social',
   'Outros',
 ];
 
 const MONTHS_PT = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+];
+
+// Mock dos membros do grupo
+const GROUP_MEMBERS = [
+  'Vitor e Bárbara',
+  'Sílvia',
+  'Lucas e Maeve',
+  'Dery',
+  'Kim',
+  'Ana e Luke',
+  'Rodrigo',
 ];
 
 const ExpensesTab = () => {
@@ -78,7 +96,7 @@ const ExpensesTab = () => {
   const [form, setForm] = useState({
     title: '',
     amount: '',
-    category: CATEGORIES[0],
+    category: EXPENSE_CATEGORIES[0],
     date: new Date(),
     showCategoryDropdown: false,
     description: '',
@@ -261,7 +279,7 @@ const ExpensesTab = () => {
       ]);
     }
     setModalVisible(false);
-    setForm({ title: '', amount: '', category: CATEGORIES[0], date: new Date(), showCategoryDropdown: false, description: '', paymentMethod: 'Dinheiro', installments: '' });
+    setForm({ title: '', amount: '', category: EXPENSE_CATEGORIES[0], date: new Date(), showCategoryDropdown: false, description: '', paymentMethod: 'Dinheiro', installments: '' });
     setEditingId(null);
   };
 
@@ -269,7 +287,7 @@ const ExpensesTab = () => {
     setForm({
       title: expense.title,
       amount: String(expense.amount),
-      category: expense.category || CATEGORIES[0],
+      category: expense.category || EXPENSE_CATEGORIES[0],
       date: new Date(expense.date),
       showCategoryDropdown: false,
       description: expense.description || '',
@@ -410,7 +428,7 @@ const ExpensesTab = () => {
               </View>
               {form.showCategoryDropdown && (
                 <View style={styles.dropdownList}>
-                  {CATEGORIES.map(cat => (
+                  {EXPENSE_CATEGORIES.map(cat => (
                     <TouchableOpacity
                       key={cat}
                       style={[
@@ -432,9 +450,10 @@ const ExpensesTab = () => {
               </View>
               {showDatePicker && (
                 <View style={styles.calendarModal}>
-                  <Calendar
+                  <ReactNativeCalendar
                     onDayPress={day => {
-                      setForm({ ...form, date: new Date(day.dateString) });
+                      const [year, month, dayNum] = day.dateString.split('-').map(Number);
+                      setForm({ ...form, date: new Date(year, month - 1, dayNum) });
                       setShowDatePicker(false);
                     }}
                     markedDates={{
@@ -553,7 +572,7 @@ const ExpensesTab = () => {
             </View>
             {showCategoryDropdownFilter && (
               <View style={styles.dropdownList}>
-                {CATEGORIES.map(cat => (
+                {EXPENSE_CATEGORIES.map(cat => (
                   <TouchableOpacity
                     key={cat}
                     style={[
@@ -587,9 +606,10 @@ const ExpensesTab = () => {
             </View>
             {showStartDatePicker && (
               <View style={styles.calendarModal}>
-                <Calendar
+                <ReactNativeCalendar
                   onDayPress={day => {
-                    setFilters(f => ({ ...f, startDate: new Date(day.dateString) }));
+                    const [year, month, dayNum] = day.dateString.split('-').map(Number);
+                    setFilters(f => ({ ...f, startDate: new Date(year, month - 1, dayNum) }));
                     setShowStartDatePicker(false);
                   }}
                   markedDates={filters.startDate ? { [filters.startDate.toISOString().split('T')[0]]: {selected: true, selectedColor: '#2D6A4F'} } : {}}
@@ -608,9 +628,544 @@ const ExpensesTab = () => {
             </View>
             {showEndDatePicker && (
               <View style={styles.calendarModal}>
-                <Calendar
+                <ReactNativeCalendar
                   onDayPress={day => {
-                    setFilters(f => ({ ...f, endDate: new Date(day.dateString) }));
+                    const [year, month, dayNum] = day.dateString.split('-').map(Number);
+                    setFilters(f => ({ ...f, endDate: new Date(year, month - 1, dayNum) }));
+                    setShowEndDatePicker(false);
+                  }}
+                  markedDates={filters.endDate ? { [filters.endDate.toISOString().split('T')[0]]: {selected: true, selectedColor: '#2D6A4F'} } : {}}
+                  theme={{ selectedDayBackgroundColor: '#2D6A4F', todayTextColor: '#2D6A4F' }}
+                />
+                <TouchableOpacity style={styles.cancelButton} onPress={() => setShowEndDatePicker(false)}>
+                  <Text style={styles.cancelButtonText}>Cancelar</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.cancelButton} onPress={() => {
+                setFilters({ name: '', startDate: null, endDate: null, category: '' });
+                setFilterModalVisible(false);
+              }}>
+                <Text style={styles.cancelButtonText}>Limpar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.saveButton} onPress={() => setFilterModalVisible(false)}>
+                <Text style={styles.saveButtonText}>Aplicar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
+};
+
+const IncomesTab = () => {
+  const [incomes, setIncomes] = useState<any[]>([]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [form, setForm] = useState({
+    title: '',
+    amount: '',
+    category: INCOME_CATEGORIES[0],
+    date: new Date(),
+    description: '',
+    paidMembers: [] as string[],
+  });
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showMembersDropdown, setShowMembersDropdown] = useState(false);
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [selectedType, setSelectedType] = useState<'GERAL' | 'MENSAL'>('GERAL');
+  const [monthModal, setMonthModal] = useState<{month: number, year: number} | null>(null);
+  const [filterModalVisible, setFilterModalVisible] = useState(false);
+  const [filters, setFilters] = useState({
+    name: '',
+    startDate: null as Date | null,
+    endDate: null as Date | null,
+    category: '',
+  });
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+  const [showCategoryDropdownFilter, setShowCategoryDropdownFilter] = useState(false);
+
+  // Agrupamento mensal igual ao de despesas
+  const availableYears = Array.from(
+    new Set(incomes.map(inc => new Date(inc.date).getFullYear()))
+  ).sort((a, b) => b - a);
+  const initialYear = availableYears.length > 0 ? availableYears[0] : new Date().getFullYear();
+  const [selectedYear, setSelectedYear] = useState(initialYear);
+  useEffect(() => {
+    if (!availableYears.includes(selectedYear)) {
+      setSelectedYear(availableYears[0] || new Date().getFullYear());
+    }
+  }, [availableYears]);
+
+  const monthlySums = (() => {
+    if (selectedType !== 'MENSAL') return [];
+    const map = new Map();
+    incomes.forEach(inc => {
+      const d = new Date(inc.date);
+      if (d.getFullYear() === selectedYear) {
+        const key = d.getMonth();
+        if (!map.has(key)) {
+          map.set(key, {
+            year: selectedYear,
+            month: key,
+            total: 0,
+          });
+        }
+        map.get(key).total += inc.amount;
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => b.month - a.month);
+  })();
+
+  const incomesOfMonth = monthModal
+    ? incomes.filter(inc => {
+        const d = new Date(inc.date);
+        return d.getFullYear() === monthModal.year && d.getMonth() === monthModal.month;
+      })
+    : [];
+
+  // Filtro de receitas (pode ser expandido depois)
+  const filteredIncomes = incomes.filter(inc => {
+    const matchesName = !filters.name || (inc.title && inc.title.toLowerCase().includes(filters.name.toLowerCase()));
+    const matchesCategory = !filters.category || inc.category === filters.category;
+    const incDate = new Date(inc.date);
+    const matchesStart = !filters.startDate || incDate >= filters.startDate;
+    const matchesEnd = !filters.endDate || incDate <= filters.endDate;
+    return matchesName && matchesCategory && matchesStart && matchesEnd;
+  });
+
+  const handleSaveIncome = () => {
+    if (!form.paidMembers[0] || !form.amount.trim()) {
+      Alert.alert('Preencha todos os campos obrigatórios!');
+      return;
+    }
+    setIncomes(prev => [
+      {
+        id: Date.now().toString(),
+        title: form.title,
+        amount: parseFloat(form.amount),
+        category: form.category,
+        date: form.date.toISOString(),
+        description: form.description,
+        paidMembers: form.paidMembers,
+      },
+      ...prev,
+    ]);
+    setModalVisible(false);
+    setForm({ title: '', amount: '', category: INCOME_CATEGORIES[0], date: new Date(), description: '', paidMembers: [] });
+  };
+
+  const toggleMemberPaid = (incomeId: string, member: string) => {
+    setIncomes(prev => prev.map(inc =>
+      inc.id === incomeId
+        ? {
+            ...inc,
+            paidMembers: inc.paidMembers.includes(member)
+              ? inc.paidMembers.filter((m: string) => m !== member)
+              : [...inc.paidMembers, member],
+          }
+        : inc
+    ));
+  };
+
+  const handleDeleteIncome = (id: string) => {
+    Alert.alert(
+      'Excluir receita',
+      'Tem certeza que deseja excluir esta receita?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Excluir', style: 'destructive', onPress: () => {
+            setIncomes(prev => prev.filter(inc => inc.id !== id));
+          }
+        },
+      ]
+    );
+  };
+
+  // IncomeCard padronizado igual ao ExpenseCard
+  interface IncomeCardProps {
+    income: any;
+    onDelete?: (id: string) => void;
+    onPress?: () => void;
+  }
+  const IncomeCard = ({ income, onDelete, onPress }: IncomeCardProps) => {
+    const formatCurrency = (amount: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(amount);
+    const formatDate = (dateString: string) => {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('pt-BR', { year: 'numeric', month: 'short', day: 'numeric' });
+    };
+    return (
+      <TouchableOpacity onPress={onPress} activeOpacity={0.8}>
+        <Card style={styles.incomeCard}>
+          <View style={styles.header}>
+            <View style={styles.iconContainer}>
+              <View style={styles.iconBackground}>
+                <DollarSign size={20} color="#2D6A4F" />
+              </View>
+            </View>
+            <Text style={styles.categoryTop}>{income.category}</Text>
+            {onDelete && (
+              <TouchableOpacity
+                style={styles.trashButton}
+                onPress={() => onDelete(income.id)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Trash2 size={20} color="#DC2626" />
+              </TouchableOpacity>
+            )}
+          </View>
+          {income.title && (
+            <Text style={styles.title}>{income.title}</Text>
+          )}
+          {income.description && (
+            <Text style={styles.description} numberOfLines={2}>{income.description}</Text>
+          )}
+          <View style={styles.footer}>
+            <View style={styles.amountContainer}>
+              <Text style={styles.amount}>{formatCurrency(income.amount)}</Text>
+              <View style={styles.dateContainer}>
+                <Calendar size={12} color="#6C584C" />
+                <Text style={styles.date}>{formatDate(income.date)}</Text>
+              </View>
+            </View>
+            <Text style={styles.userText}>por {income.paidMembers[0]}</Text>
+          </View>
+        </Card>
+      </TouchableOpacity>
+    );
+  };
+
+  return (
+    <View style={styles.tabContainer}>
+      {/* Submenu Geral/Mensal */}
+      <View style={styles.filterContainer}>
+        <TouchableOpacity
+          style={[styles.filterButton, selectedType === 'GERAL' && styles.activeFilterButton]}
+          onPress={() => setSelectedType('GERAL')}
+        >
+          <Text style={[styles.filterText, selectedType === 'GERAL' && styles.activeFilterText]}>Geral</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.filterButton, selectedType === 'MENSAL' && styles.activeFilterButton]}
+          onPress={() => setSelectedType('MENSAL')}
+        >
+          <Text style={[styles.filterText, selectedType === 'MENSAL' && styles.activeFilterText]}>Mensal</Text>
+        </TouchableOpacity>
+      </View>
+      {/* Header e botão adicionar */}
+      <View style={styles.headerContainer}>
+        <Text style={styles.listTitle}>
+          {selectedType === 'GERAL' ? 'Pagamentos' : 'Pagamentos por mês'}
+        </Text>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <TouchableOpacity style={styles.addButton} onPress={() => setFilterModalVisible(true)}>
+            <FilterIcon size={20} color="#2D6A4F" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
+            <Plus size={20} color="#2D6A4F" />
+          </TouchableOpacity>
+        </View>
+      </View>
+      {/* Lista Geral */}
+      {selectedType === 'GERAL' && (
+        <FlatList
+          data={filteredIncomes}
+          keyExtractor={item => item.id}
+          renderItem={({ item }) => (
+            <IncomeCard income={item} onDelete={handleDeleteIncome} onPress={() => {}} />
+          )}
+          contentContainerStyle={{ paddingBottom: 20 }}
+        />
+      )}
+      {/* Lista Mensal */}
+      {selectedType === 'MENSAL' && (
+        <View style={styles.monthlyList}>
+          <View style={styles.yearSelector}>
+            <TouchableOpacity
+              onPress={() => {
+                const idx = availableYears.indexOf(selectedYear);
+                if (idx < availableYears.length - 1) setSelectedYear(availableYears[idx + 1]);
+              }}
+              disabled={availableYears.indexOf(selectedYear) === availableYears.length - 1}
+              style={styles.yearButton}
+            >
+              <AntDesign name="left" size={20} color={availableYears.indexOf(selectedYear) === availableYears.length - 1 ? '#ccc' : '#2D6A4F'} />
+            </TouchableOpacity>
+            <Text style={styles.yearLabel}>{selectedYear}</Text>
+            <TouchableOpacity
+              onPress={() => {
+                const idx = availableYears.indexOf(selectedYear);
+                if (idx > 0) setSelectedYear(availableYears[idx - 1]);
+              }}
+              disabled={availableYears.indexOf(selectedYear) === 0}
+              style={styles.yearButton}
+            >
+              <AntDesign name="right" size={20} color={availableYears.indexOf(selectedYear) === 0 ? '#ccc' : '#2D6A4F'} />
+            </TouchableOpacity>
+          </View>
+          {monthlySums.length === 0 && (
+            <Text style={{ textAlign: 'center', color: '#666', marginTop: 24 }}>Nenhuma receita mensal encontrada.</Text>
+          )}
+          {monthlySums.map(({ year, month, total }) => (
+            <TouchableOpacity
+              key={`${year}-${month}`}
+              style={styles.monthItem}
+              onPress={() => setMonthModal({ month, year })}
+            >
+              <Text style={styles.monthLabel}>{MONTHS_PT[month]} {year}</Text>
+              <Text style={styles.monthTotal}>{total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+      {/* Modal de receitas do mês */}
+      <Modal
+        visible={!!monthModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setMonthModal(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { maxHeight: '80%' }]}> 
+            <Text style={styles.modalTitle}>
+              Receitas de {monthModal ? `${MONTHS_PT[monthModal.month]} de ${monthModal.year}` : ''}
+            </Text>
+            {incomesOfMonth.length === 0 ? (
+              <Text style={{ textAlign: 'center', color: '#666', marginTop: 24 }}>Nenhuma receita encontrada.</Text>
+            ) : (
+              <FlatList
+                data={incomesOfMonth}
+                keyExtractor={item => item.id}
+                renderItem={({ item }) => (
+                  <IncomeCard income={item} onDelete={handleDeleteIncome} onPress={() => {}} />
+                )}
+                contentContainerStyle={{ paddingBottom: 20 }}
+              />
+            )}
+            <TouchableOpacity style={styles.cancelButton} onPress={() => setMonthModal(null)}>
+              <Text style={styles.cancelButtonText}>Fechar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Adicionar Pagamento</Text>
+              {/* Seleção de membros */}
+              <View style={styles.inputRow}>
+                <Text style={styles.label}>Membro:</Text>
+                <TouchableOpacity
+                  style={styles.dropdownButton}
+                  onPress={() => setShowMembersDropdown(v => !v)}
+                >
+                  <Text style={styles.dropdownButtonText}>
+                    {form.paidMembers.length === 0 ? 'Selecione' : form.paidMembers[0]}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              {showMembersDropdown && (
+                <View style={styles.dropdownList}>
+                  {GROUP_MEMBERS.map(member => (
+                    <TouchableOpacity
+                      key={member}
+                      style={[
+                        styles.dropdownItem,
+                        form.paidMembers[0] === member && styles.dropdownItemSelected,
+                      ]}
+                      onPress={() => {
+                        setForm(f => ({
+                          ...f,
+                          paidMembers: [member],
+                        }));
+                        setShowMembersDropdown(false);
+                      }}
+                    >
+                      <Text style={{ color: form.paidMembers[0] === member ? '#2D6A4F' : '#333' }}>{member}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+              {/* Valor */}
+              <TextInput
+                style={styles.input}
+                placeholder="Valor (ex: 100.00)"
+                keyboardType="numeric"
+                value={form.amount}
+                onChangeText={text => setForm({ ...form, amount: text.replace(/[^0-9]/g, '') })}
+              />
+              {/* Data */}
+              <View style={styles.inputRow}>
+                <Text style={styles.label}>Data:</Text>
+                <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.dateButton}>
+                  <Text style={styles.dateText}>{form.date.toLocaleDateString('pt-BR')}</Text>
+                </TouchableOpacity>
+              </View>
+              {showDatePicker && (
+                <View style={styles.calendarModal}>
+                  <ReactNativeCalendar
+                    onDayPress={day => {
+                      const [year, month, dayNum] = day.dateString.split('-').map(Number);
+                      setForm({ ...form, date: new Date(year, month - 1, dayNum) });
+                      setShowDatePicker(false);
+                    }}
+                    markedDates={{
+                      [form.date.toISOString().split('T')[0]]: {selected: true, selectedColor: '#2D6A4F'}
+                    }}
+                    theme={{
+                      selectedDayBackgroundColor: '#2D6A4F',
+                      todayTextColor: '#2D6A4F',
+                    }}
+                  />
+                  <TouchableOpacity style={styles.cancelButton} onPress={() => setShowDatePicker(false)}>
+                    <Text style={styles.cancelButtonText}>Cancelar</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+              {/* Categoria */}
+              <View style={styles.inputRow}>
+                <Text style={styles.label}>Categoria:</Text>
+                <TouchableOpacity
+                  style={styles.dropdownButton}
+                  onPress={() => setShowCategoryDropdown(v => !v)}
+                >
+                  <Text style={styles.dropdownButtonText}>{form.category}</Text>
+                </TouchableOpacity>
+              </View>
+              {showCategoryDropdown && (
+                <View style={styles.dropdownList}>
+                  {INCOME_CATEGORIES.map(cat => (
+                    <TouchableOpacity
+                      key={cat}
+                      style={[
+                        styles.dropdownItem,
+                        form.category === cat && styles.dropdownItemSelected,
+                      ]}
+                      onPress={() => {
+                        setForm({ ...form, category: cat });
+                        setShowCategoryDropdown(false);
+                      }}
+                    >
+                      <Text style={{ color: form.category === cat ? '#2D6A4F' : '#333' }}>{cat}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+              {/* Observação */}
+              <TextInput
+                style={styles.input}
+                placeholder="Observação (opcional)"
+                value={form.description}
+                onChangeText={text => setForm({ ...form, description: text })}
+                multiline
+              />
+              <View style={styles.modalActions}>
+                <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
+                  <Text style={styles.cancelButtonText}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.saveButton} onPress={handleSaveIncome}>
+                  <Text style={styles.saveButtonText}>Salvar</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+      {/* Modal de filtro de pagamentos */}
+      <Modal
+        visible={filterModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setFilterModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Filtrar Pagamentos</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Nome do pagamento"
+              value={filters.name}
+              onChangeText={text => setFilters(f => ({ ...f, name: text }))}
+            />
+            <View style={styles.inputRow}>
+              <Text style={styles.label}>Categoria:</Text>
+              <TouchableOpacity
+                style={styles.dropdownButton}
+                onPress={() => setShowCategoryDropdownFilter(v => !v)}
+              >
+                <Text style={styles.dropdownButtonText}>{filters.category || 'Todas'}</Text>
+              </TouchableOpacity>
+            </View>
+            {showCategoryDropdownFilter && (
+              <View style={styles.dropdownList}>
+                {INCOME_CATEGORIES.map(cat => (
+                  <TouchableOpacity
+                    key={cat}
+                    style={[
+                      styles.dropdownItem,
+                      filters.category === cat && styles.dropdownItemSelected,
+                    ]}
+                    onPress={() => {
+                      setFilters(f => ({ ...f, category: cat }));
+                      setShowCategoryDropdownFilter(false);
+                    }}
+                  >
+                    <Text style={{ color: filters.category === cat ? '#2D6A4F' : '#333' }}>{cat}</Text>
+                  </TouchableOpacity>
+                ))}
+                <TouchableOpacity
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    setFilters(f => ({ ...f, category: '' }));
+                    setShowCategoryDropdownFilter(false);
+                  }}
+                >
+                  <Text style={{ color: '#333' }}>Todas</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            <View style={styles.inputRow}>
+              <Text style={styles.label}>Data início:</Text>
+              <TouchableOpacity onPress={() => setShowStartDatePicker(true)} style={styles.dateButton}>
+                <Text style={styles.dateText}>{filters.startDate ? filters.startDate.toLocaleDateString('pt-BR') : 'Qualquer'}</Text>
+              </TouchableOpacity>
+            </View>
+            {showStartDatePicker && (
+              <View style={styles.calendarModal}>
+                <ReactNativeCalendar
+                  onDayPress={day => {
+                    const [year, month, dayNum] = day.dateString.split('-').map(Number);
+                    setFilters(f => ({ ...f, startDate: new Date(year, month - 1, dayNum) }));
+                    setShowStartDatePicker(false);
+                  }}
+                  markedDates={filters.startDate ? { [filters.startDate.toISOString().split('T')[0]]: {selected: true, selectedColor: '#2D6A4F'} } : {}}
+                  theme={{ selectedDayBackgroundColor: '#2D6A4F', todayTextColor: '#2D6A4F' }}
+                />
+                <TouchableOpacity style={styles.cancelButton} onPress={() => setShowStartDatePicker(false)}>
+                  <Text style={styles.cancelButtonText}>Cancelar</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            <View style={styles.inputRow}>
+              <Text style={styles.label}>Data final:</Text>
+              <TouchableOpacity onPress={() => setShowEndDatePicker(true)} style={styles.dateButton}>
+                <Text style={styles.dateText}>{filters.endDate ? filters.endDate.toLocaleDateString('pt-BR') : 'Qualquer'}</Text>
+              </TouchableOpacity>
+            </View>
+            {showEndDatePicker && (
+              <View style={styles.calendarModal}>
+                <ReactNativeCalendar
+                  onDayPress={day => {
+                    const [year, month, dayNum] = day.dateString.split('-').map(Number);
+                    setFilters(f => ({ ...f, endDate: new Date(year, month - 1, dayNum) }));
                     setShowEndDatePicker(false);
                   }}
                   markedDates={filters.endDate ? { [filters.endDate.toISOString().split('T')[0]]: {selected: true, selectedColor: '#2D6A4F'} } : {}}
@@ -663,7 +1218,7 @@ const ScheduleTab = () => (
 // Scene map for tab view
 const renderScene = SceneMap({
   expenses: ExpensesTab,
-  closing: ClosingTab,
+  incomes: IncomesTab,
   flow: FlowTab,
   schedule: ScheduleTab,
 });
@@ -672,7 +1227,7 @@ export default function ActivitiesScreen() {
   const [index, setIndex] = useState(0);
   const [routes] = useState([
     { key: 'expenses', title: 'Despesas' },
-    { key: 'closing', title: 'Receita' },
+    { key: 'incomes', title: 'Receitas' },
     { key: 'flow', title: 'Fluxo' },
     { key: 'schedule', title: 'Resumo' },
   ]);
@@ -722,8 +1277,8 @@ export default function ActivitiesScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Financeiro</Text>
+      <View style={styles.headerMain}>
+        <Text style={styles.titleMain}>Financeiro</Text>
       </View>
       
       <TabView
@@ -741,14 +1296,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F5F7F9',
   },
-  header: {
+  headerMain: {
     padding: 16,
     paddingBottom: 8,
+    alignItems: 'flex-start',
   },
-  title: {
+  titleMain: {
     fontSize: 28,
     fontWeight: '700',
     color: '#2D6A4F',
+    textAlign: 'left',
   },
   tabBar: {
     flexDirection: 'row',
@@ -1020,5 +1577,81 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#2D6A4F',
     marginHorizontal: 8,
+  },
+  incomeCard: {
+    padding: 16,
+    backgroundColor: 'white',
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  category: {
+    fontSize: 16,
+    color: '#6C584C',
+    marginBottom: 8,
+  },
+  description: {
+    fontSize: 14,
+    color: '#6C584C',
+  },
+  amount: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#2D6A4F',
+  },
+  date: {
+    fontSize: 14,
+    color: '#6C584C',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  iconContainer: {
+    marginRight: 12,
+  },
+  iconBackground: {
+    width: 40,
+    height: 40,
+    backgroundColor: '#E8F4EA',
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  categoryTop: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#6C584C',
+    flex: 1,
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: '400',
+    color: '#333',
+    marginBottom: 4,
+    marginLeft: 52,
+  },
+  trashButton: {
+    padding: 4,
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  amountContainer: {
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+  },
+  dateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 0,
+    marginTop: 2,
+  },
+  userText: {
+    fontSize: 14,
+    color: '#6C584C',
   },
 });

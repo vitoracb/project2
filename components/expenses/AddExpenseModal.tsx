@@ -121,7 +121,8 @@ export function AddExpenseModal({ visible, onClose, onSave }: AddExpenseModalPro
               <View style={styles.calendarModal}>
                 <Calendar
                   onDayPress={day => {
-                    setForm({ ...form, date: new Date(day.dateString) });
+                    const [year, month, dayNum] = day.dateString.split('-').map(Number);
+                    setForm({ ...form, date: new Date(year, month - 1, dayNum) });
                     setShowDatePicker(false);
                   }}
                   markedDates={{
