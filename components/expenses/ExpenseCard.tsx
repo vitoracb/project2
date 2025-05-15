@@ -13,11 +13,14 @@ export interface Expense {
   category?: string;
   isPaid: boolean;
   paymentMethod?: string;
+  installments?: string;
   receipt?: string;
   user: {
     id: string;
     name: string;
   };
+  installmentIndex?: number;
+  installmentTotal?: number;
 }
 
 interface ExpenseCardProps {
@@ -43,6 +46,9 @@ export function ExpenseCard({ expense, onPress, onDelete }: ExpenseCardProps) {
     });
   };
 
+  // Detecta se é uma "parcela virtual" (menu mensal)
+  const isInstallment = typeof expense.installmentIndex === 'number' && typeof expense.installmentTotal === 'number';
+
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.8}>
       <Card style={styles.card}>
@@ -51,7 +57,10 @@ export function ExpenseCard({ expense, onPress, onDelete }: ExpenseCardProps) {
             <DollarSign size={20} color="#2D6A4F" />
           </View>
           <View style={styles.titleContainer}>
-            <Text style={styles.title}>{expense.title}</Text>
+            <Text style={styles.title}>
+              {expense.title}
+              {isInstallment ? `  ${expense.installmentIndex}/${expense.installmentTotal}` : ''}
+            </Text>
             {expense.category && (
               <Text style={styles.category}>{expense.category}</Text>
             )}
@@ -73,9 +82,16 @@ export function ExpenseCard({ expense, onPress, onDelete }: ExpenseCardProps) {
             {expense.description}
           </Text>
         )}
+        {/* Forma de pagamento */}
+        {expense.paymentMethod && (
+          <Text style={styles.description} numberOfLines={2}>
+            Forma de pagamento: {expense.paymentMethod}
+            {expense.paymentMethod === 'Cartão de Crédito' && expense.installments && !isInstallment ? ` (${expense.installments}x)` : ''}
+          </Text>
+        )}
         <View style={styles.footer}>
           <View style={styles.amountContainer}>
-            <Text style={styles.amount}>{formatCurrency(expense.amount)}</Text>
+            <Text style={styles.amount}>{formatCurrency(isInstallment ? expense.amount : expense.amount)}</Text>
             <View style={styles.dateContainer}>
               <Calendar size={12} color="#6C584C" />
               <Text style={styles.date}>{formatDate(expense.date)}</Text>

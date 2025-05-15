@@ -82,6 +82,8 @@ const ExpensesTab = () => {
     date: new Date(),
     showCategoryDropdown: false,
     description: '',
+    paymentMethod: 'Dinheiro',
+    installments: '',
   });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -115,31 +117,103 @@ const ExpensesTab = () => {
   const monthlySums = (() => {
     if (selectedType !== 'MENSAL') return [];
     const map = new Map();
-    expenses.filter(exp => new Date(exp.date).getFullYear() === selectedYear)
-      .forEach(exp => {
-        const date = new Date(exp.date);
-        const key = date.getMonth();
-        if (!map.has(key)) {
-          map.set(key, {
-            year: selectedYear,
-            month: date.getMonth(),
-            total: 0,
-          });
+    expenses.forEach(exp => {
+      // Se for parcelada
+      if (exp.paymentMethod === 'Cartão de Crédito' && exp.installments && parseInt(exp.installments) > 1) {
+        const total = parseInt(exp.installments);
+        const baseDate = new Date(exp.date);
+        for (let i = 0; i < total; i++) {
+          // Calcular mês e ano da parcela corretamente
+          const year = baseDate.getFullYear() + Math.floor((baseDate.getMonth() + i) / 12);
+          const month = (baseDate.getMonth() + i) % 12;
+          const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
+          const day = Math.min(baseDate.getDate(), lastDayOfMonth);
+          const d = new Date(year, month, day);
+          if (d.getFullYear() === selectedYear) {
+            const key = d.getMonth();
+            if (!map.has(key)) {
+              map.set(key, {
+                year: selectedYear,
+                month: key,
+                total: 0,
+              });
+            }
+            map.get(key).total += parseFloat((exp.amount / total).toFixed(2));
+          }
         }
-        map.get(key).total += exp.amount;
-      });
+      } else {
+        // Normal
+        const d = new Date(exp.date);
+        if (d.getFullYear() === selectedYear) {
+          const key = d.getMonth();
+          if (!map.has(key)) {
+            map.set(key, {
+              year: selectedYear,
+              month: key,
+              total: 0,
+            });
+          }
+          map.get(key).total += exp.amount;
+        }
+      }
+    });
     // Ordenar por mês decrescente
     return Array.from(map.values()).sort((a, b) => b.month - a.month);
   })();
 
   // Despesas do mês selecionado no modal
   const expensesOfMonth = monthModal
-    ? expenses.filter(exp => {
-        const d = new Date(exp.date);
-        return (
-          d.getFullYear() === monthModal.year &&
-          d.getMonth() === monthModal.month
-        );
+    ? expenses.flatMap(exp => {
+        if (exp.paymentMethod === 'Cartão de Crédito' && exp.installments && parseInt(exp.installments) > 1) {
+          const total = parseInt(exp.installments);
+          const baseDate = new Date(exp.date);
+          const originalDay = baseDate.getDate();
+          const monthsDiff = (monthModal.year - baseDate.getFullYear()) * 12 + (monthModal.month - baseDate.getMonth());
+          // LOG DE DEPURAÇÃO
+          console.log('[PARCELA]', {
+            title: exp.title,
+            baseDate: baseDate.toISOString(),
+            modalYear: monthModal.year,
+            modalMonth: monthModal.month,
+            monthsDiff,
+            total,
+          });
+          if (Number.isInteger(monthsDiff) && monthsDiff >= 0 && monthsDiff < total) {
+            const year = baseDate.getFullYear() + Math.floor((baseDate.getMonth() + monthsDiff) / 12);
+            const month = (baseDate.getMonth() + monthsDiff) % 12;
+            const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
+            const day = Math.min(originalDay, lastDayOfMonth);
+            const d = new Date(year, month, day);
+            // LOG DE DEPURAÇÃO
+            console.log('[PARCELA-EXIBIDA]', {
+              title: exp.title,
+              parcela: monthsDiff + 1,
+              year,
+              month,
+              d: d.toISOString(),
+              modalYear: monthModal.year,
+              modalMonth: monthModal.month,
+              exibida: d.getFullYear() === monthModal.year && d.getMonth() === monthModal.month
+            });
+            if (d.getFullYear() === monthModal.year && d.getMonth() === monthModal.month) {
+              return [{
+                ...exp,
+                amount: parseFloat((exp.amount / total).toFixed(2)),
+                installmentIndex: monthsDiff + 1,
+                installmentTotal: total,
+                date: d.toISOString(),
+              }];
+            }
+          }
+          return [];
+        } else {
+          const d = new Date(exp.date);
+          if (d.getFullYear() === monthModal.year && d.getMonth() === monthModal.month) {
+            const { installmentIndex, installmentTotal, ...rest } = exp;
+            return [{ ...rest }];
+          }
+          return [];
+        }
       })
     : [];
 
@@ -163,14 +237,13 @@ const ExpensesTab = () => {
       return;
     }
     if (editingId) {
-      // Editar despesa existente
       setExpenses(prev => prev.map(exp =>
         exp.id === editingId
-          ? { ...exp, title: form.title, amount: parseFloat(form.amount), category: form.category, date: form.date.toISOString(), description: form.description }
+          ? { ...exp, title: form.title, amount: parseFloat(form.amount), category: form.category, date: form.date.toISOString(), description: form.description, paymentMethod: form.paymentMethod, installments: form.paymentMethod === 'Cartão de Crédito' ? form.installments : undefined }
           : exp
       ));
     } else {
-      // Nova despesa
+      // Sempre cria apenas UMA despesa, mesmo se for parcelada
       setExpenses(prev => [
         {
           id: Date.now().toString(),
@@ -181,12 +254,14 @@ const ExpensesTab = () => {
           isPaid: false,
           user: { id: '1', name: 'Usuário' },
           description: form.description,
+          paymentMethod: form.paymentMethod,
+          installments: form.paymentMethod === 'Cartão de Crédito' ? form.installments : undefined,
         },
         ...prev,
       ]);
     }
     setModalVisible(false);
-    setForm({ title: '', amount: '', category: CATEGORIES[0], date: new Date(), showCategoryDropdown: false, description: '' });
+    setForm({ title: '', amount: '', category: CATEGORIES[0], date: new Date(), showCategoryDropdown: false, description: '', paymentMethod: 'Dinheiro', installments: '' });
     setEditingId(null);
   };
 
@@ -198,6 +273,8 @@ const ExpensesTab = () => {
       date: new Date(expense.date),
       showCategoryDropdown: false,
       description: expense.description || '',
+      paymentMethod: expense.paymentMethod || 'Dinheiro',
+      installments: expense.installments ? String(expense.installments) : '',
     });
     setEditingId(expense.id);
     setModalVisible(true);
@@ -379,6 +456,27 @@ const ExpensesTab = () => {
               onChangeText={text => setForm({ ...form, description: text })}
               multiline
             />
+            <View style={styles.inputRow}>
+              <Text style={styles.label}>Forma de pagamento:</Text>
+              <TouchableOpacity
+                style={[styles.dropdownButton, { minWidth: 120 }]}
+                onPress={() => setForm(f => ({ ...f, paymentMethod: f.paymentMethod === 'Dinheiro' ? 'Cartão de Crédito' : 'Dinheiro' }))}
+              >
+                <Text style={styles.dropdownButtonText}>{form.paymentMethod}</Text>
+              </TouchableOpacity>
+            </View>
+            {form.paymentMethod === 'Cartão de Crédito' && (
+              <View style={styles.inputRow}>
+                <Text style={styles.label}>Parcelas:</Text>
+                <TextInput
+                  style={[styles.input, { flex: 1, marginBottom: 0 }]}
+                  placeholder="Quantidade de parcelas"
+                  keyboardType="numeric"
+                  value={form.installments}
+                  onChangeText={text => setForm({ ...form, installments: text.replace(/[^0-9]/g, '') })}
+                />
+              </View>
+            )}
             <View style={styles.modalActions}>
               <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
                 <Text style={styles.cancelButtonText}>Cancelar</Text>
