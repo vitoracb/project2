@@ -23,6 +23,7 @@ import {
   ChevronRight
 } from 'lucide-react-native';
 import { AddExpenseModal } from '@/components/expenses/AddExpenseModal';
+import { useFinance } from '../../context/FinanceContext';
 
 // Mock data for the dashboard
 const mockActivities: Activity[] = [
@@ -57,6 +58,14 @@ const mockActivities: Activity[] = [
 
 export default function HomeScreen() {
   const [expenseModalVisible, setExpenseModalVisible] = React.useState(false);
+  const { expenses, incomes } = useFinance();
+
+  // Soma total de despesas e receitas
+  const totalDespesas = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+  const totalReceitas = incomes.reduce((sum, inc) => sum + inc.amount, 0);
+
+  const formatCurrency = (amount: number) =>
+    amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
   const handleSaveExpense = (expense: any) => {
     // Aqui você pode integrar com backend, estado global, etc.
@@ -74,13 +83,13 @@ export default function HomeScreen() {
         <View style={styles.statsContainer}>
           <StatCard
             title="Despesas Totais"
-            value="R$ 24.500"
+            value={formatCurrency(totalDespesas)}
             icon={<DollarSign size={16} color="#2D6A4F" />}
             trend={{ value: 5.2, isPositive: false }}
           />
           <StatCard
             title="Receita"
-            value="R$ 35.200"
+            value={formatCurrency(totalReceitas)}
             icon={<TrendingUp size={16} color="#40916C" />}
             trend={{ value: 8.1, isPositive: true }}
             color="#40916C"

@@ -1,14 +1,19 @@
 import { Tabs } from 'expo-router';
 import { StyleSheet, View, Text } from 'react-native';
 import { Chrome as Home, CalendarClock, ClipboardList, FileText, MessageSquare } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TabLayout() {
+  const insets = useSafeAreaInsets();
   return (
     <Tabs
       screenOptions={({ route }) => ({
         tabBarActiveTintColor: '#2D6A4F',
         tabBarInactiveTintColor: '#6C584C',
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: [
+          styles.tabBar,
+          { paddingBottom: insets.bottom + 12, minHeight: 64 + insets.bottom },
+        ],
         tabBarLabelStyle: styles.tabBarLabel,
         headerShown: false,
         tabBarIcon: ({ color, size }) => {
@@ -56,9 +61,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="activities/index"
         options={{
-          title: 'Financeiro',
+          title: 'Atividades',
           tabBarIcon: ({ color, size }) => <CalendarClock size={size} color={color} />,
-          tabBarLabel: 'Financeiro',
+          tabBarLabel: 'Atividades',
         }}
       />
       <Tabs.Screen
@@ -93,8 +98,6 @@ const styles = StyleSheet.create({
   tabBar: {
     backgroundColor: '#FFFFFF',
     borderTopColor: '#E6E6E6',
-    height: 80,
-    paddingBottom: 36,
     marginBottom: 0,
     paddingTop: 5,
   },

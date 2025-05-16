@@ -10,6 +10,8 @@ import { AntDesign } from '@expo/vector-icons';
 import { Card } from '@/components/ui/Card';
 import { PieChart, BarChart } from 'react-native-chart-kit';
 import { Dimensions } from 'react-native';
+import { useFinance } from '../../context/FinanceContext';
+import { ScrollView as RNScrollView } from 'react-native';
 
 // Mock data for expenses
 const initialExpenses: Expense[] = [
@@ -1231,7 +1233,7 @@ const FlowTabContent = React.memo(({
   const chartWidth = Dimensions.get('window').width - 32;
 
   return (
-    <>
+    <ScrollView contentContainerStyle={{ paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
       {/* Alternância mensal/anual */}
       <View style={styles.filterContainer}>
         <TouchableOpacity
@@ -1247,6 +1249,10 @@ const FlowTabContent = React.memo(({
           <Text style={[styles.filterText, mode === 'ANUAL' && styles.activeFilterText]}>Anual</Text>
         </TouchableOpacity>
       </View>
+      {/* Título Fluxo de Caixa */}
+      <Text style={{ fontSize: 22, fontWeight: '700', color: '#000', textAlign: 'left', alignSelf: 'flex-start', marginTop: 12, marginBottom: 16 }}>
+        Fluxo de Caixa
+      </Text>
       {/* Seleção de mês/ano ou só ano */}
       <View style={styles.yearSelector}>
         {mode === 'MENSAL' && (
@@ -1286,20 +1292,29 @@ const FlowTabContent = React.memo(({
         </View>
       </View>
       {/* Gráfico de pizza das despesas por categoria */}
-      <View style={{ marginTop: 24, flexDirection: 'row', width: '100%', justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ alignItems: 'center', marginTop: 18, marginBottom: 8 }}>
         <PieChart
-          data={pieData}
-          width={Dimensions.get('window').width - 32}
-          height={180}
+          data={pieData.length > 0 ? pieData : [
+            { name: 'Sem dados', population: 1, color: '#ccc', legendFontColor: '#333', legendFontSize: 13 }
+          ]}
+          width={chartWidth}
+          height={220}
           chartConfig={{
-            color: () => '#333',
+            color: (opacity = 1) => `rgba(44, 106, 79, ${opacity})`,
+            labelColor: (opacity = 1) => `rgba(44, 106, 79, ${opacity})`,
+            backgroundColor: '#fff',
+            backgroundGradientFrom: '#fff',
+            backgroundGradientTo: '#fff',
+            decimalPlaces: 2,
           }}
           accessor="population"
           backgroundColor="transparent"
-          paddingLeft="0"
+          paddingLeft="15"
           absolute
-          center={[-80, 0]}
         />
+        <Text style={{ marginTop: 8, color: '#333', fontWeight: '500' }}>
+          Despesas por categoria ({mode === 'MENSAL' ? 'mensal' : 'anual'})
+        </Text>
       </View>
       {/* Gráfico de barras das despesas mensais */}
       <View style={{ width: '100%', alignItems: 'center' }}>
@@ -1325,7 +1340,7 @@ const FlowTabContent = React.memo(({
           Despesas mensais ({selectedYear})
         </Text>
       </View>
-    </>
+    </ScrollView>
   );
 });
 
@@ -1366,9 +1381,9 @@ function FlowTab(props: any) {
   const pieData = Object.entries(despesasPorCategoria)
     .filter(([_, value]) => (value as number) > 0)
     .map(([category, value], i) => {
-      const percent = totalPie > 0 ? Math.round(((value as number) / totalPie) * 100) : 0;
+      // const percent = totalPie > 0 ? Math.round(((value as number) / totalPie) * 100) : 0;
       return {
-        name: `${category} (${percent}%)`,
+        name: category, // Removido o percentual da legenda
         population: value as number,
         color: [
           '#B02A37', // vermelho
@@ -1513,8 +1528,7 @@ const ScheduleTab = () => {
 export default function ActivitiesScreen() {
   const [activeTab, setActiveTab] = useState<'expenses' | 'incomes' | 'flow' | 'schedule'>('expenses');
 
-  const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
-  const [incomes, setIncomes] = useState<any[]>([]);
+  const { expenses, setExpenses, incomes, setIncomes } = useFinance();
 
   // Estados globais para a aba Fluxo
   const [mode, setMode] = useState<'MENSAL' | 'ANUAL'>('MENSAL');
@@ -1546,15 +1560,13 @@ export default function ActivitiesScreen() {
           </TouchableOpacity>
         ))}
       </View>
-      <ScrollView
-        style={[styles.tabContainer, { minHeight: '100%', flexGrow: 1 }]}
-        contentContainerStyle={{ flexGrow: 1, paddingBottom: 32 }}
-        showsVerticalScrollIndicator={true}
+      <View style={[styles.tabContainer, { minHeight: '100%', flexGrow: 1 }]}
+        // Removido ScrollView para evitar VirtualizedList aninhada
       >
         {activeTab === 'expenses' && <ExpensesTab expenses={expenses} setExpenses={setExpenses} />}
         {activeTab === 'incomes' && <IncomesTab incomes={incomes} setIncomes={setIncomes} />}
         {activeTab === 'flow' && (
-          <View style={{ minHeight: 700 }}>
+          <View>
             <FlowTab
               expenses={expenses}
               incomes={incomes}
@@ -1568,7 +1580,7 @@ export default function ActivitiesScreen() {
           </View>
         )}
         {activeTab === 'schedule' && <ScheduleTab />}
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
