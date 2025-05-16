@@ -35,7 +35,7 @@ import { Calendar as ReactNativeCalendar, LocaleConfig } from 'react-native-cale
 
 export default function HomeScreen() {
   const [expenseModalVisible, setExpenseModalVisible] = React.useState(false);
-  const { expenses, incomes } = useFinance();
+  const { expenses, incomes, setExpenses } = useFinance();
   const { tasks, addTask, deleteTask } = useTasks();
   const { events, deleteEvent, addEvent } = useEvents();
   const router = useRouter();
@@ -55,7 +55,11 @@ export default function HomeScreen() {
     amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
   const handleSaveExpense = (expense: any) => {
-    // Aqui você pode integrar com backend, estado global, etc.
+    setExpenses(prev => [{
+      ...expense,
+      id: Date.now().toString(),
+      user: { id: '1', name: 'Usuário' },
+    }, ...prev]);
     Alert.alert('Confirmação', 'Despesa adicionada com sucesso!');
   };
 
