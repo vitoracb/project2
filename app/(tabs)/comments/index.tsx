@@ -7,88 +7,149 @@ import {
   TextInput, 
   TouchableOpacity, 
   KeyboardAvoidingView, 
-  Platform 
+  Platform,
+  Image,
+  ScrollView
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CommentCard, Comment } from '@/components/comments/CommentCard';
-import { Paperclip, Send } from 'lucide-react-native';
+import { Paperclip, Send, FileText } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
+import * as WebBrowser from 'expo-web-browser';
+import { ActionSheetIOS, Alert } from 'react-native';
 
 // Mock data for comments
-const mockComments: Comment[] = [
-  {
-    id: '1',
-    content: 'I noticed the irrigation system in the east field needs maintenance. There seems to be a leak in one of the main pipes.',
-    attachments: [],
-    createdAt: '2025-05-12T10:30:00Z',
-    user: {
-      id: '1',
-      name: 'John Smith',
-    },
-  },
-  {
-    id: '2',
-    content: 'The new tractor parts arrived yesterday. I\'ve stored them in the equipment shed.',
-    attachments: ['https://example.com/receipt123.pdf'],
-    createdAt: '2025-05-11T14:15:00Z',
-    user: {
-      id: '2',
-      name: 'Anna Johnson',
-    },
-  },
-  {
-    id: '3',
-    content: 'I\'ll check the irrigation system tomorrow morning.',
-    attachments: [],
-    createdAt: '2025-05-12T15:45:00Z',
-    user: {
-      id: '3',
-      name: 'Robert Davis',
-    },
-    parentId: '1',
-  },
-  {
-    id: '4',
-    content: 'We need to schedule the annual soil testing soon. The best time would be before the next planting season.',
-    attachments: ['https://example.com/soil-testing-guide.pdf', 'https://example.com/last-year-results.xlsx'],
-    createdAt: '2025-05-10T09:20:00Z',
-    user: {
-      id: '2',
-      name: 'Anna Johnson',
-    },
-  },
-];
+const initialComments: Comment[] = [];
+
+const USER_ID = '0'; // id do usuário logado
 
 export default function CommentsScreen() {
+  const [comments, setComments] = useState<Comment[]>(initialComments);
   const [message, setMessage] = useState('');
+  const [attachments, setAttachments] = useState<string[]>([]);
   
   const renderComment = ({ item }: { item: Comment }) => {
-    if (item.parentId) {
-      return <CommentCard comment={item} isReply />;
-    }
-    
-    // Find replies to this comment
-    const replies = mockComments.filter(comment => comment.parentId === item.id);
-    
+    const handleReply = (parentId: string, content: string, attachments: string[] = []) => {
+      const newReply: Comment = {
+        id: Date.now().toString(),
+        content,
+        attachments,
+        createdAt: new Date().toISOString(),
+        user: { id: USER_ID, name: 'Você' },
+        parentId,
+      };
+      setComments(prev => [newReply, ...prev]);
+    };
+    const replies = comments.filter(comment => comment.parentId === item.id);
     return (
       <View style={styles.commentThread}>
-        <CommentCard comment={item} />
+        <CommentCard comment={item} isReply={!!item.parentId} onReply={!item.parentId ? handleReply : undefined} onDelete={handleDeleteComment} userId={USER_ID} />
         {replies.map(reply => (
-          <CommentCard key={reply.id} comment={reply} isReply />
+          <React.Fragment key={reply.id}>
+            {renderComment({ item: reply })}
+          </React.Fragment>
         ))}
       </View>
     );
   };
   
   // Filter out replies to show only parent comments in the main list
-  const parentComments = mockComments.filter(comment => !comment.parentId);
+  const parentComments = comments.filter(comment => !comment.parentId);
   
+  // Função para abrir arquivo/foto
+  const handleOpenAttachment = (uri: string) => {
+    WebBrowser.openBrowserAsync(uri);
+  };
+
+  // Função para adicionar anexo
+  const handleAddAttachment = async () => {
+    const handlePick = async (type: 'photo' | 'file') => {
+      if (type === 'photo') {
+        const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
+        if (!result.canceled && result.assets && result.assets[0]?.uri) {
+          setAttachments(prev => [...prev, result.assets[0].uri]);
+        }
+      } else if (type === 'file') {
+        const result = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true, multiple: true });
+        if (!result.canceled && result.assets && result.assets.length > 0) {
+          setAttachments(prev => [
+            ...prev,
+            ...result.assets.map(asset => asset.uri)
+          ]);
+        }
+      }
+    };
+    if (Platform.OS === 'ios') {
+      const options = ['Foto', 'Arquivo', 'Cancelar'];
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options,
+          cancelButtonIndex: 2,
+        },
+        async (buttonIndex) => {
+          if (buttonIndex === 0) await handlePick('photo');
+          else if (buttonIndex === 1) await handlePick('file');
+        }
+      );
+    } else {
+      Alert.alert(
+        'Adicionar anexo',
+        'Escolha o tipo de anexo',
+        [
+          { text: 'Foto', onPress: () => handlePick('photo') },
+          { text: 'Arquivo', onPress: () => handlePick('file') },
+          { text: 'Cancelar', style: 'cancel' },
+        ]
+      );
+    }
+  };
+
+  // Função para remover anexo antes do envio
+  const handleRemoveAttachment = (idx: number) => {
+    Alert.alert(
+      'Remover anexo',
+      'Deseja remover este anexo?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Remover', style: 'destructive', onPress: () => {
+            setAttachments(prev => prev.filter((_, i) => i !== idx));
+          }
+        }
+      ]
+    );
+  };
+
   const sendMessage = () => {
     if (message.trim()) {
-      console.log('Sending message:', message);
+      const newComment: Comment = {
+        id: Date.now().toString(),
+        content: message,
+        attachments,
+        createdAt: new Date().toISOString(),
+        user: { id: USER_ID, name: 'Você' },
+      };
+      setComments(prev => [newComment, ...prev]);
       setMessage('');
+      setAttachments([]);
     }
   };
   
+  // Função para deletar comentário e suas respostas
+  const handleDeleteComment = (commentId: string) => {
+    Alert.alert(
+      'Excluir comentário',
+      'Tem certeza que deseja excluir este comentário? Esta ação não pode ser desfeita.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Excluir', style: 'destructive', onPress: () => {
+            setComments(prev => prev.filter(c => c.id !== commentId && c.parentId !== commentId));
+          }
+        }
+      ]
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -100,15 +161,27 @@ export default function CommentsScreen() {
         keyExtractor={(item) => item.id}
         renderItem={renderComment}
         contentContainerStyle={styles.commentsList}
+        extraData={comments}
       />
       
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.inputContainer}
       >
-        <TouchableOpacity style={styles.attachButton}>
+        <TouchableOpacity style={styles.attachButton} onPress={handleAddAttachment}>
           <Paperclip size={20} color="#6C584C" />
         </TouchableOpacity>
+        {attachments.map((uri, idx) => (
+          <TouchableOpacity
+            key={idx}
+            onPress={() => handleOpenAttachment(uri)}
+            onLongPress={() => handleRemoveAttachment(idx)}
+            delayLongPress={300}
+            style={{ marginRight: 6 }}
+          >
+            <Image source={{ uri }} style={{ width: 36, height: 36, borderRadius: 8 }} />
+          </TouchableOpacity>
+        ))}
         <TextInput
           style={styles.input}
           placeholder="Digite uma mensagem..."
@@ -152,6 +225,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'nowrap',
     padding: 12,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
@@ -175,6 +249,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     marginHorizontal: 8,
     maxHeight: 100,
+    minWidth: 40,
   },
   sendButton: {
     width: 40,

@@ -199,10 +199,6 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Atividades recentes</Text>
-            <TouchableOpacity style={styles.seeAllButton}>
-              <Text style={styles.seeAllText}>Ver todas</Text>
-              <ChevronRight size={16} color="#2D6A4F" />
-            </TouchableOpacity>
           </View>
           
           <FlatList
