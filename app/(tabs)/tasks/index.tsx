@@ -259,7 +259,15 @@ export default function TasksScreen() {
                 <FlatList
                   data={todoTasks}
                   keyExtractor={(item) => item.id}
-                  renderItem={({ item }) => <TaskCard task={item} onDelete={handleDeleteTask} onPress={() => handleEditTask(item)} onMoveLeft={moveTaskLeft} onMoveRight={moveTaskRight} />}
+                  renderItem={({ item }) => (
+                    <TaskCard
+                      task={item}
+                      onDelete={handleDeleteTask}
+                      onPress={() => handleEditTask(item)}
+                      onMoveLeft={moveTaskLeft}
+                      onMoveRight={moveTaskRight}
+                    />
+                  )}
                   scrollEnabled={false}
                 />
               </View>
@@ -271,7 +279,15 @@ export default function TasksScreen() {
                 <FlatList
                   data={inProgressTasks}
                   keyExtractor={(item) => item.id}
-                  renderItem={({ item }) => <TaskCard task={item} onDelete={handleDeleteTask} onPress={() => handleEditTask(item)} onMoveLeft={moveTaskLeft} onMoveRight={moveTaskRight} />}
+                  renderItem={({ item }) => (
+                    <TaskCard
+                      task={item}
+                      onDelete={handleDeleteTask}
+                      onPress={() => handleEditTask(item)}
+                      onMoveLeft={moveTaskLeft}
+                      onMoveRight={moveTaskRight}
+                    />
+                  )}
                   scrollEnabled={false}
                 />
               </View>
@@ -283,7 +299,15 @@ export default function TasksScreen() {
                 <FlatList
                   data={doneTasks}
                   keyExtractor={(item) => item.id}
-                  renderItem={({ item }) => <TaskCard task={item} onDelete={handleDeleteTask} onPress={() => handleEditTask(item)} onMoveLeft={moveTaskLeft} onMoveRight={moveTaskRight} />}
+                  renderItem={({ item }) => (
+                    <TaskCard
+                      task={item}
+                      onDelete={handleDeleteTask}
+                      onPress={() => handleEditTask(item)}
+                      onMoveLeft={moveTaskLeft}
+                      onMoveRight={moveTaskRight}
+                    />
+                  )}
                   scrollEnabled={false}
                 />
               </View>
@@ -298,7 +322,15 @@ export default function TasksScreen() {
               <FlatList
                 data={todoTasks}
                 keyExtractor={(item) => item.id}
-                renderItem={({ item }) => <TaskCard task={item} onDelete={handleDeleteTask} onPress={() => handleEditTask(item)} onMoveLeft={moveTaskLeft} onMoveRight={moveTaskRight} />}
+                renderItem={({ item }) => (
+                  <TaskCard
+                    task={item}
+                    onDelete={handleDeleteTask}
+                    onPress={() => handleEditTask(item)}
+                    onMoveLeft={moveTaskLeft}
+                    onMoveRight={moveTaskRight}
+                  />
+                )}
                 scrollEnabled={false}
               />
             </View>
@@ -312,7 +344,15 @@ export default function TasksScreen() {
               <FlatList
                 data={inProgressTasks}
                 keyExtractor={(item) => item.id}
-                renderItem={({ item }) => <TaskCard task={item} onDelete={handleDeleteTask} onPress={() => handleEditTask(item)} onMoveLeft={moveTaskLeft} onMoveRight={moveTaskRight} />}
+                renderItem={({ item }) => (
+                  <TaskCard
+                    task={item}
+                    onDelete={handleDeleteTask}
+                    onPress={() => handleEditTask(item)}
+                    onMoveLeft={moveTaskLeft}
+                    onMoveRight={moveTaskRight}
+                  />
+                )}
                 scrollEnabled={false}
               />
             </View>
@@ -326,7 +366,15 @@ export default function TasksScreen() {
               <FlatList
                 data={doneTasks}
                 keyExtractor={(item) => item.id}
-                renderItem={({ item }) => <TaskCard task={item} onDelete={handleDeleteTask} onPress={() => handleEditTask(item)} onMoveLeft={moveTaskLeft} onMoveRight={moveTaskRight} />}
+                renderItem={({ item }) => (
+                  <TaskCard
+                    task={item}
+                    onDelete={handleDeleteTask}
+                    onPress={() => handleEditTask(item)}
+                    onMoveLeft={moveTaskLeft}
+                    onMoveRight={moveTaskRight}
+                  />
+                )}
                 scrollEnabled={false}
               />
             </View>

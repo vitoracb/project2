@@ -15,6 +15,10 @@ export interface Task {
     name: string;
     avatarUrl?: string;
   };
+  createdBy?: {
+    id: string;
+    name: string;
+  };
 }
 
 interface TaskCardProps {
@@ -110,29 +114,34 @@ export function TaskCard({ task, onPress, onDelete, onMoveLeft, onMoveRight }: T
           )}
         </View>
         <View style={styles.footer}>
-          {task.dueDate && (
-            <View style={styles.dueDate}>
-              <Clock size={14} color={isOverdue() ? '#DC2626' : '#666666'} />
-              <Text style={[
-                styles.dueDateText, 
-                isOverdue() && styles.overdue
-              ]}>
-                {formatDate(task.dueDate)}
-              </Text>
-            </View>
+          {task.createdBy && (
+            <Text style={styles.userText}>Adicionado por: {task.createdBy.name}</Text>
           )}
-          {task.assignee && (
-            <View style={styles.assignee}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>
-                  {task.assignee.name.charAt(0)}
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+            {task.dueDate && (
+              <View style={styles.dueDate}>
+                <Clock size={14} color={isOverdue() ? '#DC2626' : '#666666'} />
+                <Text style={[
+                  styles.dueDateText, 
+                  isOverdue() && styles.overdue
+                ]}>
+                  {formatDate(task.dueDate)}
                 </Text>
               </View>
-              <Text style={styles.assigneeName} numberOfLines={1}>
-                {task.assignee.name}
-              </Text>
-            </View>
-          )}
+            )}
+            {task.assignee && (
+              <View style={styles.assignee}>
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>
+                    {task.assignee.name.charAt(0)}
+                  </Text>
+                </View>
+                <Text style={styles.assigneeName} numberOfLines={1}>
+                  {task.assignee.name}
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
       </Card>
     </TouchableOpacity>
@@ -209,5 +218,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666666',
     maxWidth: 80,
+  },
+  userText: {
+    fontSize: 12,
+    color: '#666666',
+    marginTop: 8,
   },
 });
