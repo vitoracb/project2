@@ -1,85 +1,15 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView, Modal, TextInput, Platform, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { TaskCard, Task } from '@/components/tasks/TaskCard';
+import { TaskCard } from '@/components/tasks/TaskCard';
 import { Button } from '@/components/ui/Button';
 import { Plus, Filter } from 'lucide-react-native';
 import { Calendar as ReactNativeCalendar } from 'react-native-calendars';
-
-// Mock data for tasks
-const initialTasks: Task[] = [
-  {
-    id: '1',
-    title: 'Repair fence in north pasture',
-    description: 'Several posts need replacement after the storm',
-    status: 'TODO',
-    priority: 'HIGH',
-    dueDate: '2025-05-20T00:00:00Z',
-    assignee: {
-      id: '1',
-      name: 'John Smith',
-    },
-    createdBy: { id: '10', name: 'João da Silva' },
-  },
-  {
-    id: '2',
-    title: 'Order new irrigation supplies',
-    status: 'TODO',
-    priority: 'MEDIUM',
-    dueDate: '2025-05-25T00:00:00Z',
-    createdBy: { id: '11', name: 'Maria Souza' },
-  },
-  {
-    id: '3',
-    title: 'Schedule vet visit for cattle',
-    description: 'Annual checkups and vaccinations',
-    status: 'IN_PROGRESS',
-    priority: 'MEDIUM',
-    assignee: {
-      id: '2',
-      name: 'Anna Johnson',
-    },
-    createdBy: { id: '12', name: 'Carlos Lima' },
-  },
-  {
-    id: '4',
-    title: 'Submit quarterly tax documents',
-    status: 'IN_PROGRESS',
-    priority: 'HIGH',
-    dueDate: '2025-05-15T00:00:00Z',
-    assignee: {
-      id: '3',
-      name: 'Robert Davis',
-    },
-    createdBy: { id: '13', name: 'Fernanda Alves' },
-  },
-  {
-    id: '5',
-    title: 'Fix tractor hydraulic system',
-    status: 'DONE',
-    priority: 'HIGH',
-    assignee: {
-      id: '1',
-      name: 'John Smith',
-    },
-    createdBy: { id: '14', name: 'Lucas Pereira' },
-  },
-  {
-    id: '6',
-    title: 'Clean equipment shed',
-    status: 'DONE',
-    priority: 'LOW',
-    assignee: {
-      id: '2',
-      name: 'Anna Johnson',
-    },
-    createdBy: { id: '15', name: 'Patrícia Costa' },
-  },
-];
+import { useTasks, Task } from '../../context/TasksContext';
 
 export default function TasksScreen() {
   const [activeFilter, setActiveFilter] = useState('all');
-  const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const { tasks, addTask, editTask, deleteTask, moveTaskLeft, moveTaskRight } = useTasks();
   const [modalVisible, setModalVisible] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDescription, setNewTaskDescription] = useState('');
@@ -97,39 +27,41 @@ export default function TasksScreen() {
   // Lógica de filtragem
   let filteredTasks = tasks;
   if (filterName.trim()) {
-    filteredTasks = filteredTasks.filter(task => task.title.toLowerCase().includes(filterName.trim().toLowerCase()));
+    filteredTasks = filteredTasks.filter((task: Task) => task.title.toLowerCase().includes(filterName.trim().toLowerCase()));
   }
   if (filterStartDate) {
-    filteredTasks = filteredTasks.filter(task => task.dueDate && new Date(task.dueDate) >= filterStartDate);
+    filteredTasks = filteredTasks.filter((task: Task) => task.dueDate && new Date(task.dueDate) >= filterStartDate);
   }
   if (filterEndDate) {
-    filteredTasks = filteredTasks.filter(task => task.dueDate && new Date(task.dueDate) <= filterEndDate);
+    filteredTasks = filteredTasks.filter((task: Task) => task.dueDate && new Date(task.dueDate) <= filterEndDate);
   }
 
-  const todoTasks = filteredTasks.filter(task => task.status === 'TODO');
-  const inProgressTasks = filteredTasks.filter(task => task.status === 'IN_PROGRESS');
-  const doneTasks = filteredTasks.filter(task => task.status === 'DONE');
+  const todoTasks = filteredTasks.filter((task: Task) => task.status === 'TODO');
+  const inProgressTasks = filteredTasks.filter((task: Task) => task.status === 'IN_PROGRESS');
+  const doneTasks = filteredTasks.filter((task: Task) => task.status === 'DONE');
   
   const handleSaveTask = () => {
     if (!newTaskTitle.trim() || !newTaskDate) return;
     if (editingTaskId) {
-      setTasks(prev => prev.map(task =>
-        task.id === editingTaskId
-          ? { ...task, title: newTaskTitle, description: newTaskDescription, dueDate: newTaskDate.toISOString() }
-          : task
-      ));
+      editTask({
+        id: editingTaskId,
+        title: newTaskTitle,
+        description: newTaskDescription,
+        dueDate: newTaskDate.toISOString(),
+        status: tasks.find((t: Task) => t.id === editingTaskId)?.status || 'TODO',
+        priority: tasks.find((t: Task) => t.id === editingTaskId)?.priority || 'MEDIUM',
+        assignee: tasks.find((t: Task) => t.id === editingTaskId)?.assignee,
+        createdBy: tasks.find((t: Task) => t.id === editingTaskId)?.createdBy,
+      });
     } else {
-      setTasks(prev => [
-        {
-          id: Date.now().toString(),
-          title: newTaskTitle,
-          description: newTaskDescription,
-          status: 'TODO',
-          priority: 'MEDIUM',
-          dueDate: newTaskDate.toISOString(),
-        },
-        ...prev,
-      ]);
+      addTask({
+        id: Date.now().toString(),
+        title: newTaskTitle,
+        description: newTaskDescription,
+        status: 'TODO',
+        priority: 'MEDIUM',
+        dueDate: newTaskDate.toISOString(),
+      });
     }
     setNewTaskTitle('');
     setNewTaskDescription('');
@@ -152,45 +84,8 @@ export default function TasksScreen() {
       'Tem certeza que deseja excluir esta atividade?',
       [
         { text: 'Cancelar', style: 'cancel' },
-        { text: 'Excluir', style: 'destructive', onPress: () => setTasks(prev => prev.filter(t => t.id !== id)) },
+        { text: 'Excluir', style: 'destructive', onPress: () => deleteTask(id) },
       ]
-    );
-  };
-
-  // Funções para mover tarefa entre colunas
-  const moveTaskLeft = (id: string) => {
-    setTasks(prev =>
-      prev.map(task =>
-        task.id === id
-          ? {
-              ...task,
-              status:
-                task.status === 'IN_PROGRESS'
-                  ? 'TODO'
-                  : task.status === 'DONE'
-                  ? 'IN_PROGRESS'
-                  : task.status,
-            }
-          : task
-      )
-    );
-  };
-
-  const moveTaskRight = (id: string) => {
-    setTasks(prev =>
-      prev.map(task =>
-        task.id === id
-          ? {
-              ...task,
-              status:
-                task.status === 'TODO'
-                  ? 'IN_PROGRESS'
-                  : task.status === 'IN_PROGRESS'
-                  ? 'DONE'
-                  : task.status,
-            }
-          : task
-      )
     );
   };
 

@@ -24,6 +24,7 @@ import {
 } from 'lucide-react-native';
 import { AddExpenseModal } from '@/components/expenses/AddExpenseModal';
 import { useFinance } from '../../context/FinanceContext';
+import { useTasks, Task } from '../../context/TasksContext';
 
 // Mock data for the dashboard
 const mockActivities: Activity[] = [
@@ -59,6 +60,7 @@ const mockActivities: Activity[] = [
 export default function HomeScreen() {
   const [expenseModalVisible, setExpenseModalVisible] = React.useState(false);
   const { expenses, incomes } = useFinance();
+  const { tasks } = useTasks();
 
   // Soma total de despesas e receitas
   const totalDespesas = expenses.reduce((sum, exp) => sum + exp.amount, 0);
@@ -71,6 +73,10 @@ export default function HomeScreen() {
     // Aqui você pode integrar com backend, estado global, etc.
     Alert.alert('Confirmação', 'Despesa adicionada com sucesso!');
   };
+
+  const todoCount = tasks.filter((t: Task) => t.status === 'TODO').length;
+  const inProgressCount = tasks.filter((t: Task) => t.status === 'IN_PROGRESS').length;
+  const doneCount = tasks.filter((t: Task) => t.status === 'DONE').length;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -109,17 +115,17 @@ export default function HomeScreen() {
             <View style={styles.taskStats}>
               <View style={styles.taskStat}>
                 <View style={[styles.taskIndicator, styles.todoIndicator]} />
-                <Text style={styles.taskCount}>8</Text>
+                <Text style={styles.taskCount}>{todoCount}</Text>
                 <Text style={styles.taskLabel}>A fazer</Text>
               </View>
               <View style={styles.taskStat}>
                 <View style={[styles.taskIndicator, styles.inProgressIndicator]} />
-                <Text style={styles.taskCount}>3</Text>
+                <Text style={styles.taskCount}>{inProgressCount}</Text>
                 <Text style={styles.taskLabel}>Em andamento</Text>
               </View>
               <View style={styles.taskStat}>
                 <View style={[styles.taskIndicator, styles.doneIndicator]} />
-                <Text style={styles.taskCount}>12</Text>
+                <Text style={styles.taskCount}>{doneCount}</Text>
                 <Text style={styles.taskLabel}>Concluídas</Text>
               </View>
             </View>
