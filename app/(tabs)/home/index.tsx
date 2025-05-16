@@ -27,42 +27,14 @@ import { useFinance } from '../../context/FinanceContext';
 import { useTasks, Task } from '../../context/TasksContext';
 import { AddTaskModal } from '../../../components/tasks/AddTaskModal';
 import { useRouter } from 'expo-router';
-
-// Mock data for the dashboard
-const mockActivities: Activity[] = [
-  {
-    id: '1',
-    action: 'Created',
-    entityType: 'task',
-    entityId: 'task1',
-    details: { title: 'Fence repair at north pasture' },
-    createdAt: '2025-05-12T10:30:00Z',
-    user: { name: 'John Smith' }
-  },
-  {
-    id: '2',
-    action: 'Updated',
-    entityType: 'expense',
-    entityId: 'exp1',
-    details: { title: 'New tractor parts' },
-    createdAt: '2025-05-12T09:15:00Z',
-    user: { name: 'Anna Johnson' }
-  },
-  {
-    id: '3',
-    action: 'Uploaded',
-    entityType: 'document',
-    entityId: 'doc1',
-    details: { name: 'Water rights certificate' },
-    createdAt: '2025-05-11T16:45:00Z',
-    user: { name: 'Robert Davis' }
-  }
-];
+import { useEvents, Event as CalendarEvent } from '../../context/EventsContext';
+import { addDays, isAfter, isSameDay } from 'date-fns';
 
 export default function HomeScreen() {
   const [expenseModalVisible, setExpenseModalVisible] = React.useState(false);
   const { expenses, incomes } = useFinance();
-  const { tasks, addTask } = useTasks();
+  const { tasks, addTask, deleteTask } = useTasks();
+  const { events, deleteEvent } = useEvents();
   const router = useRouter();
 
   // Estados para o modal de tarefa
@@ -105,12 +77,58 @@ export default function HomeScreen() {
     setAddTaskModalVisible(false);
   };
 
+  // Adaptador para o formato do ActivityCard
+  function taskToActivity(task: Task) {
+    return {
+      id: task.id,
+      action: 'Tarefa Criada',
+      entityType: 'task',
+      entityId: task.id,
+      details: { title: task.title },
+      createdAt: task.dueDate || new Date().toISOString(),
+      user: { name: task.createdBy?.name || 'Usuário' }
+    };
+  }
+
+  function eventToActivity(event: CalendarEvent) {
+    return {
+      id: event.id,
+      action: 'Evento Agendado',
+      entityType: 'event',
+      entityId: event.id,
+      details: { title: event.title },
+      createdAt: event.date,
+      user: { name: 'Calendário' }
+    };
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const validEvents = events; // Forçar exibição de todos os eventos para teste
+  const eventActivities = validEvents.map(eventToActivity);
+  const taskActivities = tasks
+    .map(taskToActivity)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  let recentActivities;
+  if (eventActivities.length > 0) {
+    const neededTasks = 3 - eventActivities.length;
+    recentActivities = [
+      ...eventActivities,
+      ...taskActivities.filter(t => !eventActivities.some(e => e.id === t.id)).slice(0, neededTasks)
+    ];
+  } else {
+    recentActivities = taskActivities.slice(0, 3);
+  }
+
+  console.log('events:', events);
+  console.log('validEvents:', validEvents);
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.header}>
-          <Text style={styles.title}>Painel</Text>
-          <Text style={styles.subtitle}>Fazenda da Família Smith</Text>
+          <Text style={styles.title}>Floresta Sagrada</Text>
+          <Text style={styles.subtitle}>Fazenda Nossa Senhora Aparecida</Text>
         </View>
         
         <View style={styles.statsContainer}>
@@ -118,13 +136,11 @@ export default function HomeScreen() {
             title="Despesas Totais"
             value={formatCurrency(totalDespesas)}
             icon={<DollarSign size={16} color="#2D6A4F" />}
-            trend={{ value: 5.2, isPositive: false }}
           />
           <StatCard
             title="Receita"
             value={formatCurrency(totalReceitas)}
             icon={<TrendingUp size={16} color="#40916C" />}
-            trend={{ value: 8.1, isPositive: true }}
             color="#40916C"
           />
         </View>
@@ -177,9 +193,33 @@ export default function HomeScreen() {
           </View>
           
           <FlatList
-            data={mockActivities}
+            data={recentActivities}
             keyExtractor={(item) => item.id}
-            renderItem={({ item }) => <ActivityCard activity={item} />}
+            renderItem={({ item }) => (
+              <ActivityCard
+                activity={item}
+                onDelete={() => {
+                  Alert.alert(
+                    'Excluir',
+                    item.entityType === 'event'
+                      ? 'Tem certeza que deseja excluir este evento?'
+                      : 'Tem certeza que deseja excluir esta tarefa?',
+                    [
+                      { text: 'Cancelar', style: 'cancel' },
+                      { text: 'Excluir', style: 'destructive', onPress: () => {
+                          console.log('Tentando deletar:', item.entityType, item.id);
+                          if (item.entityType === 'event') {
+                            deleteEvent(item.id);
+                          } else {
+                            deleteTask(item.id);
+                          }
+                        }
+                      }
+                    ]
+                  );
+                }}
+              />
+            )}
             scrollEnabled={false}
           />
         </View>

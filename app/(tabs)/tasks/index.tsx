@@ -1,11 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView, Modal, TextInput, Platform, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TaskCard } from '@/components/tasks/TaskCard';
 import { Button } from '@/components/ui/Button';
-import { Plus, Filter } from 'lucide-react-native';
-import { Calendar as ReactNativeCalendar } from 'react-native-calendars';
+import { Plus, Filter, Calendar as CalendarIcon } from 'lucide-react-native';
+import { Calendar as ReactNativeCalendar, LocaleConfig } from 'react-native-calendars';
 import { useTasks, Task } from '../../context/TasksContext';
+import { useEvents } from '../../context/EventsContext';
+
+LocaleConfig.locales['pt-br'] = {
+  monthNames: [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+  ],
+  monthNamesShort: [
+    'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
+    'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'
+  ],
+  dayNames: [
+    'Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'
+  ],
+  dayNamesShort: ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'],
+  today: 'Hoje'
+};
+LocaleConfig.defaultLocale = 'pt-br';
 
 export default function TasksScreen() {
   const [activeFilter, setActiveFilter] = useState('all');
@@ -23,6 +41,15 @@ export default function TasksScreen() {
   const [filterEndDate, setFilterEndDate] = useState<Date | null>(null);
   const [showStartCalendar, setShowStartCalendar] = useState(false);
   const [showEndCalendar, setShowEndCalendar] = useState(false);
+  const [eventModalVisible, setEventModalVisible] = useState(false);
+  const [events, setEvents] = useState<{ date: string; title: string }[]>([]);
+  const [newEventDate, setNewEventDate] = useState<Date | null>(null);
+  const [newEventTitle, setNewEventTitle] = useState('');
+  const [showEventCalendar, setShowEventCalendar] = useState(false);
+  const { addEvent } = useEvents();
+  const [calendarModalVisible, setCalendarModalVisible] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [eventTitleInput, setEventTitleInput] = useState('');
   
   // Lógica de filtragem
   let filteredTasks = tasks;
@@ -89,6 +116,23 @@ export default function TasksScreen() {
     );
   };
 
+  useEffect(() => {
+    if (selectedDate && events.some(ev => ev.date === selectedDate)) {
+      setSelectedDate(null);
+      setEventTitleInput('');
+    }
+  }, [events]);
+
+  const markedDates = {
+    ...events.reduce((acc: Record<string, any>, ev) => {
+      acc[ev.date] = { selected: true, selectedColor: '#2D6A4F' };
+      return acc;
+    }, {}),
+    ...(selectedDate && !events.some(ev => ev.date === selectedDate)
+      ? { [selectedDate]: { selected: true, selectedColor: '#40916C' } }
+      : {})
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -96,6 +140,9 @@ export default function TasksScreen() {
         <View style={styles.headerActions}>
           <TouchableOpacity style={styles.filterButton} onPress={() => setFilterModalVisible(true)}>
             <Filter size={20} color="#333333" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.filterButton} onPress={() => setCalendarModalVisible(true)}>
+            <CalendarIcon size={20} color="#333333" />
           </TouchableOpacity>
           <Button
             title="Nova Tarefa"
@@ -398,6 +445,122 @@ export default function TasksScreen() {
                 <Text style={{ color: 'white', fontWeight: '700' }}>Aplicar</Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+      <Modal
+        visible={eventModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setEventModalVisible(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ backgroundColor: 'white', borderRadius: 16, padding: 24, width: '90%' }}>
+            <Text style={{ fontSize: 20, fontWeight: '700', marginBottom: 16, color: '#2D6A4F', textAlign: 'center' }}>
+              Novo Evento
+            </Text>
+            <TouchableOpacity onPress={() => setShowEventCalendar(true)} style={{ borderWidth: 1, borderColor: '#E6E6E6', borderRadius: 8, padding: 10, marginBottom: 12, backgroundColor: '#F0F0F0' }}>
+              <Text style={{ fontSize: 16, color: '#333' }}>{newEventDate ? newEventDate.toLocaleDateString('pt-BR') : 'Selecionar data'}</Text>
+            </TouchableOpacity>
+            {showEventCalendar && (
+              <View style={{ marginBottom: 12 }}>
+                <ReactNativeCalendar
+                  onDayPress={day => {
+                    const [year, month, dayNum] = day.dateString.split('-').map(Number);
+                    setNewEventDate(new Date(year, month - 1, dayNum));
+                    setShowEventCalendar(false);
+                  }}
+                  markedDates={events.reduce((acc, ev) => {
+                    acc[ev.date] = { selected: true, selectedColor: '#2D6A4F' };
+                    return acc;
+                  }, newEventDate ? { [newEventDate.toISOString().split('T')[0]]: {selected: true, selectedColor: '#2D6A4F'} } : {})}
+                  theme={{ selectedDayBackgroundColor: '#2D6A4F', todayTextColor: '#2D6A4F' }}
+                />
+              </View>
+            )}
+            <TextInput
+              style={{ borderWidth: 1, borderColor: '#E6E6E6', borderRadius: 8, padding: 10, marginBottom: 12, fontSize: 16, color: '#333' }}
+              placeholder="Título do evento"
+              value={newEventTitle}
+              onChangeText={setNewEventTitle}
+            />
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12 }}>
+              <TouchableOpacity onPress={() => setEventModalVisible(false)} style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, backgroundColor: '#E6E6E6' }}>
+                <Text style={{ color: '#333', fontWeight: '500' }}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => {
+                if (newEventDate && newEventTitle.trim()) {
+                  setEvents(prev => [
+                    { date: newEventDate.toISOString().split('T')[0], title: newEventTitle },
+                    ...prev
+                  ]);
+                  setNewEventDate(null);
+                  setNewEventTitle('');
+                  setEventModalVisible(false);
+                  setShowEventCalendar(false);
+                }
+              }} style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, backgroundColor: '#2D6A4F' }}>
+                <Text style={{ color: 'white', fontWeight: '700' }}>Salvar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+      <Modal
+        visible={calendarModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setCalendarModalVisible(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ backgroundColor: 'white', borderRadius: 16, padding: 24, width: '90%' }}>
+            <Text style={{ fontSize: 20, fontWeight: '700', marginBottom: 16, color: '#2D6A4F', textAlign: 'center' }}>
+              Adicionar Evento
+            </Text>
+            <ReactNativeCalendar
+              onDayPress={day => {
+                setSelectedDate(day.dateString);
+              }}
+              markedDates={markedDates}
+              theme={{ selectedDayBackgroundColor: '#2D6A4F', todayTextColor: '#2D6A4F' }}
+            />
+            {selectedDate && (
+              <View style={{ marginTop: 16 }}>
+                <TextInput
+                  style={{ borderWidth: 1, borderColor: '#E6E6E6', borderRadius: 8, padding: 10, marginBottom: 12, fontSize: 16, color: '#333' }}
+                  placeholder="Título do evento"
+                  value={eventTitleInput}
+                  onChangeText={setEventTitleInput}
+                />
+                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12 }}>
+                  <TouchableOpacity onPress={() => { setSelectedDate(null); setEventTitleInput(''); }} style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, backgroundColor: '#E6E6E6' }}>
+                    <Text style={{ color: '#333', fontWeight: '500' }}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => {
+                      if (
+                        eventTitleInput.trim() &&
+                        selectedDate &&
+                        typeof selectedDate === 'string' &&
+                        /^\d{4}-\d{2}-\d{2}$/.test(selectedDate)
+                      ) {
+                        const eventId = `${selectedDate}-${eventTitleInput}-${Date.now()}`;
+                        addEvent({ date: selectedDate, title: eventTitleInput, id: eventId });
+                        setCalendarModalVisible(false);
+                        setSelectedDate(null);
+                        setEventTitleInput('');
+                      }
+                    }}
+                    style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, backgroundColor: '#2D6A4F' }}
+                  >
+                    <Text style={{ color: 'white', fontWeight: '700' }}>Salvar</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+            <TouchableOpacity onPress={() => { setCalendarModalVisible(false); setSelectedDate(null); setEventTitleInput(''); }} style={{ marginTop: 16, alignSelf: 'flex-end' }}>
+              <Text style={{ color: '#2D6A4F', fontWeight: '500' }}>Fechar</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>

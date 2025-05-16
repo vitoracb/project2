@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Card } from '../ui/Card';
-import { Clock } from 'lucide-react-native';
+import { Clock, Trash2 } from 'lucide-react-native';
 
 export interface Activity {
   id: string;
@@ -17,12 +17,13 @@ export interface Activity {
 
 interface ActivityCardProps {
   activity: Activity;
+  onDelete?: (id: string) => void;
 }
 
-export function ActivityCard({ activity }: ActivityCardProps) {
+export function ActivityCard({ activity, onDelete }: ActivityCardProps) {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString(undefined, {
+    return date.toLocaleDateString('pt-BR', {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
@@ -52,11 +53,24 @@ export function ActivityCard({ activity }: ActivityCardProps) {
       </View>
       <View style={styles.content}>
         <Text style={styles.action}>
-          {activity.action} a {formatEntityType(activity.entityType)}
+          {activity.entityType === 'event' || activity.entityType === 'task'
+            ? activity.action
+            : `${activity.action} a ${formatEntityType(activity.entityType)}`}
         </Text>
         <Text style={styles.details}>
           {activity.details?.title || activity.details?.name || ''}
         </Text>
+        {onDelete && (
+          <TouchableOpacity
+            style={styles.trashButton}
+            onPress={() => {
+              console.log('Deletar:', activity.id);
+              onDelete(activity.id);
+            }}
+          >
+            <Trash2 size={18} color="#DC2626" />
+          </TouchableOpacity>
+        )}
       </View>
     </Card>
   );
@@ -105,5 +119,14 @@ const styles = StyleSheet.create({
   details: {
     fontSize: 14,
     color: '#666666',
+  },
+  trashButton: {
+    position: 'absolute',
+    right: 8,
+    bottom: 8,
+    padding: 4,
+    backgroundColor: 'white',
+    borderRadius: 12,
+    elevation: 2,
   },
 });

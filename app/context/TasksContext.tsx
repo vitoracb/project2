@@ -38,7 +38,10 @@ export const TasksProvider = ({ children }: { children: ReactNode }) => {
 
   const editTask = (task: Task) => setTasks(prev => prev.map(t => t.id === task.id ? { ...t, ...task } : t));
 
-  const deleteTask = (id: string) => setTasks(prev => prev.filter(t => t.id !== id));
+  const deleteTask = (id: string) => {
+    console.log('deleteTask chamado:', id);
+    setTasks(prev => prev.filter(t => t.id !== id));
+  };
 
   const moveTaskLeft = (id: string) => {
     setTasks(prev => prev.map(task =>
