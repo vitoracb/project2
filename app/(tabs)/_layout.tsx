@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import { StyleSheet, View, Text } from 'react-native';
-import { Chrome as Home, CalendarClock, ClipboardList, FileText, MessageSquare } from 'lucide-react-native';
+import { House, CalendarClock, ClipboardList, FileText, MessageSquare, DollarSign, Hammer } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TabLayout() {
@@ -19,11 +19,11 @@ export default function TabLayout() {
         tabBarIcon: ({ color, size }) => {
           switch (route.name) {
             case 'home':
-              return <Home size={size} color={color} />;
+              return <House size={size} color={color} />;
             case 'activities':
-              return <CalendarClock size={size} color={color} />;
+              return <DollarSign size={size} color={color} />;
             case 'tasks':
-              return <ClipboardList size={size} color={color} />;
+              return <Hammer size={size} color={color} />;
             case 'documents':
               return <FileText size={size} color={color} />;
             case 'comments':
@@ -35,11 +35,11 @@ export default function TabLayout() {
         tabBarLabel: (() => {
           switch (route.name) {
             case 'home':
-              return 'Painel';
+              return 'Início';
             case 'activities':
-              return 'Atividades';
+              return 'Financeiro';
             case 'tasks':
-              return 'Tarefas';
+              return 'Atividades';
             case 'documents':
               return 'Documentos';
             case 'comments':
@@ -53,25 +53,25 @@ export default function TabLayout() {
       <Tabs.Screen
         name="home/index"
         options={{
-          title: 'Painel',
-          tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
-          tabBarLabel: 'Painel',
+          title: 'Início',
+          tabBarIcon: ({ color, size }) => <House size={size} color={color} />,
+          tabBarLabel: 'Início',
         }}
       />
       <Tabs.Screen
         name="activities/index"
         options={{
-          title: 'Atividades',
-          tabBarIcon: ({ color, size }) => <CalendarClock size={size} color={color} />,
-          tabBarLabel: 'Atividades',
+          title: 'Financeiro',
+          tabBarIcon: ({ color, size }) => <DollarSign size={size} color={color} />,
+          tabBarLabel: 'Financeiro',
         }}
       />
       <Tabs.Screen
         name="tasks/index"
         options={{
-          title: 'Tarefas',
-          tabBarIcon: ({ color, size }) => <ClipboardList size={size} color={color} />,
-          tabBarLabel: 'Tarefas',
+          title: 'Atividades',
+          tabBarIcon: ({ color, size }) => <Hammer size={size} color={color} />,
+          tabBarLabel: 'Atividades',
         }}
       />
       <Tabs.Screen
