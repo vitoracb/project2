@@ -6,7 +6,9 @@ import {
   StyleSheet, 
   FlatList, 
   TouchableOpacity,
-  Alert
+  Alert,
+  Modal,
+  TextInput
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatCard } from '@/components/dashboard/StatCard';
@@ -29,12 +31,13 @@ import { AddTaskModal } from '../../../components/tasks/AddTaskModal';
 import { useRouter } from 'expo-router';
 import { useEvents, Event as CalendarEvent } from '../../context/EventsContext';
 import { addDays, isAfter, isSameDay } from 'date-fns';
+import { Calendar as ReactNativeCalendar, LocaleConfig } from 'react-native-calendars';
 
 export default function HomeScreen() {
   const [expenseModalVisible, setExpenseModalVisible] = React.useState(false);
   const { expenses, incomes } = useFinance();
   const { tasks, addTask, deleteTask } = useTasks();
-  const { events, deleteEvent } = useEvents();
+  const { events, deleteEvent, addEvent } = useEvents();
   const router = useRouter();
 
   // Estados para o modal de tarefa
@@ -123,6 +126,20 @@ export default function HomeScreen() {
   console.log('events:', events);
   console.log('validEvents:', validEvents);
 
+  const [calendarModalVisible, setCalendarModalVisible] = React.useState(false);
+  const [selectedDate, setSelectedDate] = React.useState<string | null>(null);
+  const [eventTitleInput, setEventTitleInput] = React.useState('');
+
+  const markedDates = {
+    ...events.reduce((acc: Record<string, any>, ev) => {
+      acc[ev.date] = { selected: true, selectedColor: '#2D6A4F' };
+      return acc;
+    }, {}),
+    ...(selectedDate && !events.some(ev => ev.date === selectedDate)
+      ? { [selectedDate]: { selected: true, selectedColor: '#40916C' } }
+      : {})
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -172,14 +189,6 @@ export default function HomeScreen() {
                 <Text style={styles.taskLabel}>Concluídas</Text>
               </View>
             </View>
-            <Button 
-              title="Adicionar tarefa" 
-              variant="outline"
-              size="small"
-              icon={<Plus size={16} color="#2D6A4F" />}
-              style={styles.addButton}
-              onPress={() => setAddTaskModalVisible(true)}
-            />
           </Card>
         </View>
         
@@ -241,14 +250,14 @@ export default function HomeScreen() {
               <Text style={styles.actionText}>Enviar documento</Text>
             </TouchableOpacity>
             
-            <TouchableOpacity style={styles.actionButton}>
+            <TouchableOpacity style={styles.actionButton} onPress={() => setAddTaskModalVisible(true)}>
               <View style={[styles.actionIcon, styles.taskIcon]}>
                 <ClipboardList size={20} color="#52B788" />
               </View>
               <Text style={styles.actionText}>Criar tarefa</Text>
             </TouchableOpacity>
             
-            <TouchableOpacity style={styles.actionButton}>
+            <TouchableOpacity style={styles.actionButton} onPress={() => setCalendarModalVisible(true)}>
               <View style={[styles.actionIcon, styles.eventIcon]}>
                 <Calendar size={20} color="#74C69D" />
               </View>
@@ -275,6 +284,61 @@ export default function HomeScreen() {
         showCalendar={showCalendar}
         setShowCalendar={setShowCalendar}
       />
+      <Modal
+        visible={calendarModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setCalendarModalVisible(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ backgroundColor: 'white', borderRadius: 16, padding: 24, width: '90%' }}>
+            <Text style={{ fontSize: 20, fontWeight: '700', marginBottom: 16, color: '#2D6A4F', textAlign: 'center' }}>
+              Adicionar Evento
+            </Text>
+            <ReactNativeCalendar
+              onDayPress={day => {
+                setSelectedDate(day.dateString);
+              }}
+              markedDates={markedDates}
+              theme={{ selectedDayBackgroundColor: '#2D6A4F', todayTextColor: '#2D6A4F' }}
+            />
+            {selectedDate && (
+              <View style={{ marginTop: 16 }}>
+                <TextInput
+                  style={{ borderWidth: 1, borderColor: '#E6E6E6', borderRadius: 8, padding: 10, marginBottom: 12, fontSize: 16, color: '#333' }}
+                  placeholder="Título do evento"
+                  value={eventTitleInput}
+                  onChangeText={setEventTitleInput}
+                />
+                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12 }}>
+                  <TouchableOpacity onPress={() => { setSelectedDate(null); setEventTitleInput(''); }} style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, backgroundColor: '#E6E6E6' }}>
+                    <Text style={{ color: '#333', fontWeight: '500' }}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => {
+                    if (
+                      eventTitleInput.trim() &&
+                      selectedDate &&
+                      typeof selectedDate === 'string' &&
+                      /^\d{4}-\d{2}-\d{2}$/.test(selectedDate)
+                    ) {
+                      const eventId = `${selectedDate}-${eventTitleInput}-${Date.now()}`;
+                      addEvent({ date: selectedDate, title: eventTitleInput, id: eventId });
+                      setCalendarModalVisible(false);
+                      setSelectedDate(null);
+                      setEventTitleInput('');
+                    }
+                  }} style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, backgroundColor: '#2D6A4F' }}>
+                    <Text style={{ color: 'white', fontWeight: '700' }}>Salvar</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+            <TouchableOpacity onPress={() => { setCalendarModalVisible(false); setSelectedDate(null); setEventTitleInput(''); }} style={{ marginTop: 16, alignSelf: 'flex-end' }}>
+              <Text style={{ color: '#2D6A4F', fontWeight: '500' }}>Fechar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -366,9 +430,6 @@ const styles = StyleSheet.create({
   taskLabel: {
     fontSize: 12,
     color: '#666666',
-  },
-  addButton: {
-    alignSelf: 'center',
   },
   quickActions: {
     marginBottom: 16,
