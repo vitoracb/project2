@@ -19,6 +19,7 @@ const initialTasks: Task[] = [
       id: '1',
       name: 'John Smith',
     },
+    createdBy: { id: '10', name: 'João da Silva' },
   },
   {
     id: '2',
@@ -26,6 +27,7 @@ const initialTasks: Task[] = [
     status: 'TODO',
     priority: 'MEDIUM',
     dueDate: '2025-05-25T00:00:00Z',
+    createdBy: { id: '11', name: 'Maria Souza' },
   },
   {
     id: '3',
@@ -37,6 +39,7 @@ const initialTasks: Task[] = [
       id: '2',
       name: 'Anna Johnson',
     },
+    createdBy: { id: '12', name: 'Carlos Lima' },
   },
   {
     id: '4',
@@ -48,6 +51,7 @@ const initialTasks: Task[] = [
       id: '3',
       name: 'Robert Davis',
     },
+    createdBy: { id: '13', name: 'Fernanda Alves' },
   },
   {
     id: '5',
@@ -58,6 +62,7 @@ const initialTasks: Task[] = [
       id: '1',
       name: 'John Smith',
     },
+    createdBy: { id: '14', name: 'Lucas Pereira' },
   },
   {
     id: '6',
@@ -68,6 +73,7 @@ const initialTasks: Task[] = [
       id: '2',
       name: 'Anna Johnson',
     },
+    createdBy: { id: '15', name: 'Patrícia Costa' },
   },
 ];
 
