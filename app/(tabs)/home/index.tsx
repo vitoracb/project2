@@ -25,6 +25,8 @@ import {
 import { AddExpenseModal } from '@/components/expenses/AddExpenseModal';
 import { useFinance } from '../../context/FinanceContext';
 import { useTasks, Task } from '../../context/TasksContext';
+import { AddTaskModal } from '../../../components/tasks/AddTaskModal';
+import { useRouter } from 'expo-router';
 
 // Mock data for the dashboard
 const mockActivities: Activity[] = [
@@ -60,7 +62,15 @@ const mockActivities: Activity[] = [
 export default function HomeScreen() {
   const [expenseModalVisible, setExpenseModalVisible] = React.useState(false);
   const { expenses, incomes } = useFinance();
-  const { tasks } = useTasks();
+  const { tasks, addTask } = useTasks();
+  const router = useRouter();
+
+  // Estados para o modal de tarefa
+  const [addTaskModalVisible, setAddTaskModalVisible] = React.useState(false);
+  const [newTaskTitle, setNewTaskTitle] = React.useState('');
+  const [newTaskDescription, setNewTaskDescription] = React.useState('');
+  const [newTaskDate, setNewTaskDate] = React.useState<Date | null>(null);
+  const [showCalendar, setShowCalendar] = React.useState(false);
 
   // Soma total de despesas e receitas
   const totalDespesas = expenses.reduce((sum, exp) => sum + exp.amount, 0);
@@ -77,6 +87,23 @@ export default function HomeScreen() {
   const todoCount = tasks.filter((t: Task) => t.status === 'TODO').length;
   const inProgressCount = tasks.filter((t: Task) => t.status === 'IN_PROGRESS').length;
   const doneCount = tasks.filter((t: Task) => t.status === 'DONE').length;
+
+  const handleSaveTask = () => {
+    if (!newTaskTitle.trim() || !newTaskDate) return;
+    addTask({
+      id: Date.now().toString(),
+      title: newTaskTitle,
+      description: newTaskDescription,
+      status: 'TODO',
+      priority: 'MEDIUM',
+      dueDate: newTaskDate.toISOString(),
+    });
+    setNewTaskTitle('');
+    setNewTaskDescription('');
+    setNewTaskDate(null);
+    setShowCalendar(false);
+    setAddTaskModalVisible(false);
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -104,8 +131,8 @@ export default function HomeScreen() {
         
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Tarefas futuras</Text>
-            <TouchableOpacity style={styles.seeAllButton}>
+            <Text style={styles.sectionTitle}>Tarefas</Text>
+            <TouchableOpacity style={styles.seeAllButton} onPress={() => router.push('/tasks')}>
               <Text style={styles.seeAllText}>Ver todas</Text>
               <ChevronRight size={16} color="#2D6A4F" />
             </TouchableOpacity>
@@ -135,6 +162,7 @@ export default function HomeScreen() {
               size="small"
               icon={<Plus size={16} color="#2D6A4F" />}
               style={styles.addButton}
+              onPress={() => setAddTaskModalVisible(true)}
             />
           </Card>
         </View>
@@ -193,6 +221,19 @@ export default function HomeScreen() {
         visible={expenseModalVisible}
         onClose={() => setExpenseModalVisible(false)}
         onSave={handleSaveExpense}
+      />
+      <AddTaskModal
+        visible={addTaskModalVisible}
+        onClose={() => setAddTaskModalVisible(false)}
+        onSave={handleSaveTask}
+        title={newTaskTitle}
+        setTitle={setNewTaskTitle}
+        description={newTaskDescription}
+        setDescription={setNewTaskDescription}
+        date={newTaskDate}
+        setDate={setNewTaskDate}
+        showCalendar={showCalendar}
+        setShowCalendar={setShowCalendar}
       />
     </SafeAreaView>
   );
