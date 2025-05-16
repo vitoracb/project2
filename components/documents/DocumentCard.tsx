@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Card } from '../ui/Card';
-import { FileText, Download } from 'lucide-react-native';
+import { FileText, Download, Trash2 } from 'lucide-react-native';
 
 export type DocumentCategory = 'DEED' | 'MAP' | 'CERTIFICATE' | 'RECEIPT' | 'OTHER';
 
@@ -24,9 +24,10 @@ interface DocumentCardProps {
   document: Document;
   onPress?: () => void;
   onDownload?: () => void;
+  onDelete?: () => void;
 }
 
-export function DocumentCard({ document, onPress, onDownload }: DocumentCardProps) {
+export function DocumentCard({ document, onPress, onDownload, onDelete }: DocumentCardProps) {
   const formatBytes = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -84,6 +85,9 @@ export function DocumentCard({ document, onPress, onDownload }: DocumentCardProp
             <Text style={styles.title} numberOfLines={1}>
               {document.title}
             </Text>
+            {document.description ? (
+              <Text style={styles.description} numberOfLines={2}>{document.description}</Text>
+            ) : null}
             <Text style={styles.category}>
               {getCategoryLabel(document.category)}
             </Text>
@@ -101,6 +105,15 @@ export function DocumentCard({ document, onPress, onDownload }: DocumentCardProp
           >
             <Download size={20} color="#2D6A4F" />
           </TouchableOpacity>
+          {onDelete && (
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={onDelete}
+              activeOpacity={0.7}
+            >
+              <Trash2 size={20} color="#DC2626" />
+            </TouchableOpacity>
+          )}
         </View>
       </Card>
     </TouchableOpacity>
@@ -158,5 +171,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 8,
+  },
+  deleteButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FDEAEA',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+  description: {
+    fontSize: 13,
+    color: '#555',
+    marginBottom: 4,
   },
 });

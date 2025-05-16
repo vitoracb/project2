@@ -8,7 +8,13 @@ import {
   TouchableOpacity,
   Alert,
   Modal,
-  TextInput
+  TextInput,
+  Platform,
+  ActionSheetIOS,
+  Image,
+  Keyboard,
+  TouchableWithoutFeedback,
+  KeyboardAvoidingView
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatCard } from '@/components/dashboard/StatCard';
@@ -32,6 +38,9 @@ import { useRouter } from 'expo-router';
 import { useEvents, Event as CalendarEvent } from '../../context/EventsContext';
 import { addDays, isAfter, isSameDay } from 'date-fns';
 import { Calendar as ReactNativeCalendar, LocaleConfig } from 'react-native-calendars';
+import { useDocuments, DocumentCategory } from '../../context/DocumentsContext';
+import * as DocumentPicker from 'expo-document-picker';
+import * as ImagePicker from 'expo-image-picker';
 
 export default function HomeScreen() {
   const [expenseModalVisible, setExpenseModalVisible] = React.useState(false);
@@ -39,6 +48,14 @@ export default function HomeScreen() {
   const { tasks, addTask, deleteTask } = useTasks();
   const { events, deleteEvent, addEvent } = useEvents();
   const router = useRouter();
+  const { addDocument } = useDocuments();
+  const [uploadModalVisible, setUploadModalVisible] = React.useState(false);
+  const [uploadForm, setUploadForm] = React.useState({
+    title: '',
+    category: '' as '' | DocumentCategory,
+    file: null as null | { uri: string; name: string; type: string },
+    description: '',
+  });
 
   // Estados para o modal de tarefa
   const [addTaskModalVisible, setAddTaskModalVisible] = React.useState(false);
@@ -144,6 +161,62 @@ export default function HomeScreen() {
       : {})
   };
 
+  const handlePickFile = async () => {
+    Alert.alert(
+      'Selecionar',
+      'Escolha o tipo de documento',
+      [
+        { text: 'Documento', onPress: async () => {
+            const result = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true });
+            if (!result.canceled && result.assets && result.assets[0]) {
+              setUploadForm(f => ({ ...f, file: { uri: result.assets[0].uri, name: result.assets[0].name, type: result.assets[0].mimeType || 'application/octet-stream' } }));
+            }
+          }
+        },
+        { text: 'Foto', onPress: async () => {
+            const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images });
+            if (!result.canceled && result.assets && result.assets[0]) {
+              setUploadForm(f => ({ ...f, file: { uri: result.assets[0].uri, name: result.assets[0].fileName || 'imagem.jpg', type: result.assets[0].type || 'image/jpeg' } }));
+            }
+          }
+        },
+        { text: 'Câmera', onPress: async () => {
+            const result = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images });
+            if (!result.canceled && result.assets && result.assets[0]) {
+              setUploadForm(f => ({ ...f, file: { uri: result.assets[0].uri, name: result.assets[0].fileName || 'foto.jpg', type: result.assets[0].type || 'image/jpeg' } }));
+            }
+          }
+        },
+        { text: 'Cancelar', style: 'cancel' }
+      ]
+    );
+  };
+
+  const handleSaveDocument = () => {
+    if (!uploadForm.category) {
+      Alert.alert('Selecione a categoria!');
+      return;
+    }
+    if (!uploadForm.file) {
+      Alert.alert('Selecione um arquivo ou foto!');
+      return;
+    }
+    const newDoc = {
+      id: Date.now().toString(),
+      title: uploadForm.title || (uploadForm.file && uploadForm.file.name) || '',
+      category: uploadForm.category as DocumentCategory,
+      fileUrl: uploadForm.file.uri,
+      fileType: uploadForm.file.type.split('/').pop() || 'file',
+      fileSize: 0,
+      createdAt: new Date().toISOString(),
+      uploader: { id: '0', name: 'Você' },
+      description: uploadForm.description,
+    };
+    addDocument(newDoc);
+    setUploadModalVisible(false);
+    setUploadForm({ title: '', category: '', file: null, description: '' });
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -243,7 +316,7 @@ export default function HomeScreen() {
               <Text style={styles.actionText}>Adicionar despesa</Text>
             </TouchableOpacity>
             
-            <TouchableOpacity style={styles.actionButton}>
+            <TouchableOpacity style={styles.actionButton} onPress={() => setUploadModalVisible(true)}>
               <View style={[styles.actionIcon, styles.documentIcon]}>
                 <FileText size={20} color="#40916C" />
               </View>
@@ -338,6 +411,109 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
         </View>
+      </Modal>
+      <Modal
+        visible={uploadModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setUploadModalVisible(false)}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <View style={{ backgroundColor: 'white', borderRadius: 16, padding: 24, width: '90%' }}>
+              <Text style={{ fontSize: 20, fontWeight: '700', marginBottom: 16, color: '#2D6A4F', textAlign: 'center' }}>
+                Enviar Documento
+              </Text>
+              <Text style={{ fontWeight: '600', marginBottom: 8 }}>Categoria</Text>
+              <TouchableOpacity
+                style={{ borderWidth: 1, borderColor: '#E6E6E6', borderRadius: 8, padding: 12, marginBottom: 12, backgroundColor: '#F0F0F0' }}
+                onPress={() => {
+                  const categorias: DocumentCategory[] = ['DEED', 'MAP', 'CERTIFICATE', 'RECEIPT', 'OTHER'];
+                  const labels = categorias.map(cat => {
+                    switch (cat) {
+                      case 'DEED': return 'Escritura';
+                      case 'MAP': return 'Mapas';
+                      case 'CERTIFICATE': return 'Certificados';
+                      case 'RECEIPT': return 'Recibos';
+                      case 'OTHER': return 'Outros';
+                    }
+                  });
+                  if (Platform.OS === 'ios') {
+                    ActionSheetIOS.showActionSheetWithOptions(
+                      {
+                        options: [...labels, 'Cancelar'],
+                        cancelButtonIndex: labels.length,
+                      },
+                      (buttonIndex) => {
+                        if (buttonIndex < labels.length) {
+                          setUploadForm(f => ({ ...f, category: categorias[buttonIndex] }));
+                        }
+                      }
+                    );
+                  } else {
+                    const buttons: any[] = labels.map((label, idx) => ({
+                      text: label,
+                      onPress: () => setUploadForm(f => ({ ...f, category: categorias[idx] })),
+                    }));
+                    buttons.push({ text: 'Cancelar', style: 'cancel' });
+                    Alert.alert(
+                      'Selecione a categoria',
+                      undefined,
+                      buttons
+                    );
+                  }
+                }}
+              >
+                <Text style={{ color: uploadForm.category ? '#333' : '#888', fontWeight: '500' }}>
+                  {uploadForm.category ?
+                    (uploadForm.category === 'DEED' ? 'Escritura' :
+                      uploadForm.category === 'MAP' ? 'Mapas' :
+                      uploadForm.category === 'CERTIFICATE' ? 'Certificados' :
+                      uploadForm.category === 'RECEIPT' ? 'Recibos' :
+                      'Outros')
+                    : 'Selecione a categoria'}
+                </Text>
+              </TouchableOpacity>
+              <Text style={{ fontWeight: '600', marginBottom: 8 }}>Nome do documento</Text>
+              <TextInput
+                style={{ borderWidth: 1, borderColor: '#E6E6E6', borderRadius: 8, padding: 10, marginBottom: 12, fontSize: 16, color: '#333' }}
+                placeholder="Nome do documento"
+                value={uploadForm.title}
+                onChangeText={t => setUploadForm(f => ({ ...f, title: t }))}
+              />
+              <TextInput
+                style={{ borderWidth: 1, borderColor: '#E6E6E6', borderRadius: 8, padding: 10, marginBottom: 12, fontSize: 16, color: '#333', minHeight: 40 }}
+                placeholder="Observações (opcional)"
+                value={uploadForm.description}
+                onChangeText={t => setUploadForm(f => ({ ...f, description: t }))}
+                multiline
+              />
+              <TouchableOpacity
+                style={{ borderWidth: 1, borderColor: '#E6E6E6', borderRadius: 8, padding: 12, marginBottom: 12, backgroundColor: '#F0F0F0', alignItems: 'center' }}
+                onPress={handlePickFile}
+              >
+                <Text style={{ color: '#2D6A4F', fontWeight: '600' }}>Selecionar Documento</Text>
+              </TouchableOpacity>
+              {uploadForm.file && (
+                <View style={{ alignItems: 'center', marginBottom: 12 }}>
+                  {uploadForm.file.type.startsWith('image') ? (
+                    <Image source={{ uri: uploadForm.file.uri }} style={{ width: 80, height: 80, borderRadius: 8 }} />
+                  ) : (
+                    <Text style={{ color: '#333' }}>{uploadForm.file.name}</Text>
+                  )}
+                </View>
+              )}
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12 }}>
+                <TouchableOpacity onPress={() => setUploadModalVisible(false)} style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, backgroundColor: '#E6E6E6' }}>
+                  <Text style={{ color: '#333', fontWeight: '500' }}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleSaveDocument} style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, backgroundColor: '#2D6A4F' }}>
+                  <Text style={{ color: 'white', fontWeight: '700' }}>Salvar</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
+        </TouchableWithoutFeedback>
       </Modal>
     </SafeAreaView>
   );

@@ -1,88 +1,29 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView, Modal, TextInput, Alert, Image, Platform, ActionSheetIOS, Linking, Keyboard, TouchableWithoutFeedback, KeyboardAvoidingView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DocumentCard, Document, DocumentCategory } from '@/components/documents/DocumentCard';
 import { Button } from '@/components/ui/Button';
 import { Upload, FileText, MapPin, FileCheck, Receipt, FileQuestion } from 'lucide-react-native';
-
-// Mock data for documents
-const mockDocuments: Document[] = [
-  {
-    id: '1',
-    title: 'Property Deed',
-    description: 'Original deed for the 200-acre property',
-    category: 'DEED',
-    fileUrl: 'https://example.com/deed.pdf',
-    fileType: 'pdf',
-    fileSize: 2500000,
-    createdAt: '2023-01-15T10:30:00Z',
-    uploader: {
-      id: '1',
-      name: 'John Smith',
-    },
-  },
-  {
-    id: '2',
-    title: 'North Field Survey Map',
-    category: 'MAP',
-    fileUrl: 'https://example.com/map.pdf',
-    fileType: 'pdf',
-    fileSize: 5200000,
-    createdAt: '2024-03-22T14:15:00Z',
-    uploader: {
-      id: '2',
-      name: 'Anna Johnson',
-    },
-  },
-  {
-    id: '3',
-    title: 'Water Rights Certificate',
-    description: 'Legal certificate for water usage rights',
-    category: 'CERTIFICATE',
-    fileUrl: 'https://example.com/certificate.pdf',
-    fileType: 'pdf',
-    fileSize: 1800000,
-    createdAt: '2024-05-10T09:45:00Z',
-    uploader: {
-      id: '3',
-      name: 'Robert Davis',
-    },
-  },
-  {
-    id: '4',
-    title: 'Equipment Purchase Receipt',
-    category: 'RECEIPT',
-    fileUrl: 'https://example.com/receipt.jpg',
-    fileType: 'jpg',
-    fileSize: 850000,
-    createdAt: '2025-04-05T16:30:00Z',
-    uploader: {
-      id: '1',
-      name: 'John Smith',
-    },
-  },
-  {
-    id: '5',
-    title: 'Insurance Policy',
-    description: 'Annual farm insurance policy documentation',
-    category: 'OTHER',
-    fileUrl: 'https://example.com/insurance.pdf',
-    fileType: 'pdf',
-    fileSize: 3200000,
-    createdAt: '2025-01-30T11:20:00Z',
-    uploader: {
-      id: '2',
-      name: 'Anna Johnson',
-    },
-  },
-];
+import * as DocumentPicker from 'expo-document-picker';
+import * as ImagePicker from 'expo-image-picker';
+import { useDocuments } from '../../context/DocumentsContext';
 
 export default function DocumentsScreen() {
   const [selectedCategory, setSelectedCategory] = useState<DocumentCategory | 'ALL'>('ALL');
+  const { documents, addDocument, removeDocument } = useDocuments();
+  const [uploadModalVisible, setUploadModalVisible] = useState(false);
+  const [uploadForm, setUploadForm] = useState({
+    title: '',
+    category: '' as '' | DocumentCategory,
+    file: null as null | { uri: string; name: string; type: string },
+    description: '',
+  });
+  const [previewVisible, setPreviewVisible] = useState(false);
+  const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   
   const filteredDocuments = selectedCategory === 'ALL' 
-    ? mockDocuments 
-    : mockDocuments.filter(doc => doc.category === selectedCategory);
+    ? documents 
+    : documents.filter(doc => doc.category === selectedCategory);
   
   const getCategoryIcon = (category: DocumentCategory) => {
     switch (category) {
@@ -117,14 +58,63 @@ export default function DocumentsScreen() {
   const getCategoryLabel = (category: DocumentCategory) => {
     const labels = {
       DEED: 'Escritura',
-      MAP: 'Mapa',
-      CERTIFICATE: 'Certificado',
-      RECEIPT: 'Recibo',
-      OTHER: 'Outro'
+      MAP: 'Mapas',
+      CERTIFICATE: 'Certificados',
+      RECEIPT: 'Recibos',
+      OTHER: 'Outros'
     };
     return labels[category];
   };
   
+  const handlePickFile = async () => {
+    Alert.alert(
+      'Selecionar',
+      'Escolha o tipo de arquivo',
+      [
+        { text: 'Foto', onPress: async () => {
+            const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images });
+            if (!result.canceled && result.assets && result.assets[0]) {
+              setUploadForm(f => ({ ...f, file: { uri: result.assets[0].uri, name: result.assets[0].fileName || 'imagem.jpg', type: result.assets[0].type || 'image/jpeg' } }));
+            }
+          }
+        },
+        { text: 'Arquivo', onPress: async () => {
+            const result = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true });
+            if (!result.canceled && result.assets && result.assets[0]) {
+              setUploadForm(f => ({ ...f, file: { uri: result.assets[0].uri, name: result.assets[0].name, type: result.assets[0].mimeType || 'application/octet-stream' } }));
+            }
+          }
+        },
+        { text: 'Cancelar', style: 'cancel' }
+      ]
+    );
+  };
+
+  const handleSaveDocument = () => {
+    if (!uploadForm.category) {
+      Alert.alert('Selecione a categoria!');
+      return;
+    }
+    if (!uploadForm.file) {
+      Alert.alert('Selecione um arquivo ou foto!');
+      return;
+    }
+    const newDoc: Document = {
+      id: Date.now().toString(),
+      title: uploadForm.title || (uploadForm.file && uploadForm.file.name) || '',
+      category: uploadForm.category as DocumentCategory,
+      fileUrl: uploadForm.file.uri,
+      fileType: uploadForm.file.type.split('/').pop() || 'file',
+      fileSize: 0,
+      createdAt: new Date().toISOString(),
+      uploader: { id: '0', name: 'Você' },
+      description: uploadForm.description,
+    };
+    addDocument(newDoc);
+    setUploadModalVisible(false);
+    setUploadForm({ title: '', category: '', file: null, description: '' });
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -134,6 +124,7 @@ export default function DocumentsScreen() {
           size="small"
           icon={<Upload size={16} color="white" />}
           style={styles.uploadButton}
+          onPress={() => setUploadModalVisible(true)}
         />
       </View>
       
@@ -181,18 +172,157 @@ export default function DocumentsScreen() {
         renderItem={({ item }) => (
           <DocumentCard 
             document={item} 
-            onPress={() => console.log('View document', item.id)}
+            onPress={() => {
+              setPreviewDoc(item);
+              setPreviewVisible(true);
+            }}
             onDownload={() => console.log('Download document', item.id)}
+            onDelete={() => {
+              Alert.alert(
+                'Excluir documento',
+                'Tem certeza que deseja excluir este documento?',
+                [
+                  { text: 'Cancelar', style: 'cancel' },
+                  { text: 'Excluir', style: 'destructive', onPress: () => removeDocument(item.id) },
+                ]
+              );
+            }}
           />
         )}
         contentContainerStyle={styles.documentsList}
       />
+      <Modal
+        visible={uploadModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setUploadModalVisible(false)}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <View style={{ backgroundColor: 'white', borderRadius: 16, padding: 24, width: '90%' }}>
+              <Text style={{ fontSize: 20, fontWeight: '700', marginBottom: 16, color: '#2D6A4F', textAlign: 'center' }}>
+                Enviar Documento
+              </Text>
+              <Text style={{ fontWeight: '600', marginBottom: 8 }}>Categoria</Text>
+              <TouchableOpacity
+                style={{ borderWidth: 1, borderColor: '#E6E6E6', borderRadius: 8, padding: 12, marginBottom: 12, backgroundColor: '#F0F0F0' }}
+                onPress={() => {
+                  const categorias: DocumentCategory[] = ['DEED', 'MAP', 'CERTIFICATE', 'RECEIPT', 'OTHER'];
+                  const labels = categorias.map(cat => getCategoryLabel(cat));
+                  if (Platform.OS === 'ios') {
+                    ActionSheetIOS.showActionSheetWithOptions(
+                      {
+                        options: [...labels, 'Cancelar'],
+                        cancelButtonIndex: labels.length,
+                      },
+                      (buttonIndex) => {
+                        if (buttonIndex < labels.length) {
+                          setUploadForm(f => ({ ...f, category: categorias[buttonIndex] }));
+                        }
+                      }
+                    );
+                  } else {
+                    const buttons: any[] = labels.map((label, idx) => ({
+                      text: label,
+                      onPress: () => setUploadForm(f => ({ ...f, category: categorias[idx] })),
+                    }));
+                    buttons.push({ text: 'Cancelar', style: 'cancel' });
+                    Alert.alert(
+                      'Selecione a categoria',
+                      undefined,
+                      buttons
+                    );
+                  }
+                }}
+              >
+                <Text style={{ color: uploadForm.category ? '#333' : '#888', fontWeight: '500' }}>
+                  {uploadForm.category ? getCategoryLabel(uploadForm.category as DocumentCategory) : 'Selecione a categoria'}
+                </Text>
+              </TouchableOpacity>
+              <Text style={{ fontWeight: '600', marginBottom: 8 }}>Nome do documento</Text>
+              <TextInput
+                style={{ borderWidth: 1, borderColor: '#E6E6E6', borderRadius: 8, padding: 10, marginBottom: 12, fontSize: 16, color: '#333' }}
+                placeholder="Nome do documento"
+                value={uploadForm.title}
+                onChangeText={t => setUploadForm(f => ({ ...f, title: t }))}
+              />
+              <TextInput
+                style={{ borderWidth: 1, borderColor: '#E6E6E6', borderRadius: 8, padding: 10, marginBottom: 12, fontSize: 16, color: '#333', minHeight: 40 }}
+                placeholder="Observações (opcional)"
+                value={uploadForm.description}
+                onChangeText={t => setUploadForm(f => ({ ...f, description: t }))}
+                multiline
+              />
+              <TouchableOpacity
+                style={{ borderWidth: 1, borderColor: '#E6E6E6', borderRadius: 8, padding: 12, marginBottom: 12, backgroundColor: '#F0F0F0', alignItems: 'center' }}
+                onPress={handlePickFile}
+              >
+                <Text style={{ color: '#2D6A4F', fontWeight: '600' }}>{uploadForm.file ? 'Alterar Documento' : 'Selecionar Documento'}</Text>
+              </TouchableOpacity>
+              {uploadForm.file && (
+                <TouchableOpacity
+                  onLongPress={() => {
+                    Alert.alert(
+                      'Remover arquivo',
+                      'Deseja remover o arquivo selecionado?',
+                      [
+                        { text: 'Cancelar', style: 'cancel' },
+                        { text: 'Remover', style: 'destructive', onPress: () => setUploadForm(f => ({ ...f, file: null })) },
+                      ]
+                    );
+                  }}
+                  activeOpacity={0.8}
+                  style={{ alignItems: 'center', marginBottom: 12 }}
+                >
+                  {uploadForm.file.type.startsWith('image') ? (
+                    <Image source={{ uri: uploadForm.file.uri }} style={{ width: 80, height: 80, borderRadius: 8 }} />
+                  ) : (
+                    <Text style={{ color: '#333' }}>{uploadForm.file.name}</Text>
+                  )}
+                  <Text style={{ color: '#888', fontSize: 12, marginTop: 4 }}>(Segure para remover)</Text>
+                </TouchableOpacity>
+              )}
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12 }}>
+                <TouchableOpacity onPress={() => setUploadModalVisible(false)} style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, backgroundColor: '#E6E6E6' }}>
+                  <Text style={{ color: '#333', fontWeight: '500' }}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleSaveDocument} style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, backgroundColor: '#2D6A4F' }}>
+                  <Text style={{ color: 'white', fontWeight: '700' }}>Salvar</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
+        </TouchableWithoutFeedback>
+      </Modal>
+      {/* Modal de preview */}
+      <Modal
+        visible={previewVisible && !!previewDoc}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setPreviewVisible(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ backgroundColor: 'white', borderRadius: 16, padding: 16, width: '90%', alignItems: 'center' }}>
+            {previewDoc && previewDoc.fileType.match(/jpg|jpeg|png|gif/i) ? (
+              <Image source={{ uri: previewDoc.fileUrl }} style={{ width: 300, height: 400, resizeMode: 'contain', borderRadius: 12, marginBottom: 16 }} />
+            ) : previewDoc ? (
+              <View style={{ alignItems: 'center', marginBottom: 16 }}>
+                <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 8 }}>Visualização não suportada</Text>
+                <Text style={{ color: '#666', marginBottom: 16 }}>Apenas imagens podem ser visualizadas aqui.</Text>
+                <TouchableOpacity onPress={() => Linking.openURL(previewDoc.fileUrl)} style={{ backgroundColor: '#2D6A4F', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 }}>
+                  <Text style={{ color: 'white', fontWeight: '600' }}>Abrir documento</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
+            <TouchableOpacity onPress={() => setPreviewVisible(false)} style={{ marginTop: 8, padding: 12 }}>
+              <Text style={{ color: '#2D6A4F', fontSize: 16 }}>Fechar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
-
-// Import ScrollView for the horizontal categories
-import { ScrollView } from 'react-native';
 
 const styles = StyleSheet.create({
   container: {
