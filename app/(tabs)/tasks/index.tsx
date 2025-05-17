@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView, Modal, 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TaskCard } from '@/components/tasks/TaskCard';
 import { Button } from '@/components/ui/Button';
-import { Plus, Filter, Calendar as CalendarIcon } from 'lucide-react-native';
+import { Plus, Filter, Calendar as CalendarIcon, Trash2 } from 'lucide-react-native';
 import { Calendar as ReactNativeCalendar, LocaleConfig } from 'react-native-calendars';
 import { useTasks, Task } from '../../context/TasksContext';
 import { useEvents } from '../../context/EventsContext';
@@ -42,14 +42,15 @@ export default function TasksScreen() {
   const [showStartCalendar, setShowStartCalendar] = useState(false);
   const [showEndCalendar, setShowEndCalendar] = useState(false);
   const [eventModalVisible, setEventModalVisible] = useState(false);
-  const [events, setEvents] = useState<{ date: string; title: string }[]>([]);
   const [newEventDate, setNewEventDate] = useState<Date | null>(null);
   const [newEventTitle, setNewEventTitle] = useState('');
   const [showEventCalendar, setShowEventCalendar] = useState(false);
-  const { addEvent } = useEvents();
+  const { addEvent, events, deleteEvent } = useEvents();
   const [calendarModalVisible, setCalendarModalVisible] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [eventTitleInput, setEventTitleInput] = useState('');
+  const [visibleMonth, setVisibleMonth] = useState(new Date().getMonth() + 1);
+  const [visibleYear, setVisibleYear] = useState(new Date().getFullYear());
   
   // Lógica de filtragem
   let filteredTasks = tasks;
@@ -146,7 +147,12 @@ export default function TasksScreen() {
           <TouchableOpacity style={[styles.filterButton, { backgroundColor: filterButtonBg }]} onPress={() => setFilterModalVisible(true)}>
             <Filter size={20} color={filterIconColor} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.filterButton} onPress={() => setCalendarModalVisible(true)}>
+          <TouchableOpacity style={styles.filterButton} onPress={() => {
+            const now = new Date();
+            setVisibleMonth(now.getMonth() + 1);
+            setVisibleYear(now.getFullYear());
+            setEventModalVisible(true);
+          }}>
             <CalendarIcon size={20} color="#333333" />
           </TouchableOpacity>
           <Button
@@ -467,22 +473,55 @@ export default function TasksScreen() {
             <TouchableOpacity onPress={() => setShowEventCalendar(true)} style={{ borderWidth: 1, borderColor: '#E6E6E6', borderRadius: 8, padding: 10, marginBottom: 12, backgroundColor: '#F0F0F0' }}>
               <Text style={{ fontSize: 16, color: '#333' }}>{newEventDate ? newEventDate.toLocaleDateString('pt-BR') : 'Selecionar data'}</Text>
             </TouchableOpacity>
-            {showEventCalendar && (
-              <View style={{ marginBottom: 12 }}>
-                <ReactNativeCalendar
-                  onDayPress={day => {
-                    const [year, month, dayNum] = day.dateString.split('-').map(Number);
-                    setNewEventDate(new Date(year, month - 1, dayNum));
-                    setShowEventCalendar(false);
-                  }}
-                  markedDates={events.reduce((acc, ev) => {
-                    acc[ev.date] = { selected: true, selectedColor: '#2D6A4F' };
-                    return acc;
-                  }, newEventDate ? { [newEventDate.toISOString().split('T')[0]]: {selected: true, selectedColor: '#2D6A4F'} } : {})}
-                  theme={{ selectedDayBackgroundColor: '#2D6A4F', todayTextColor: '#2D6A4F' }}
-                />
-              </View>
-            )}
+            {/* Calendário principal do modal de evento */}
+            <ReactNativeCalendar
+              onDayPress={day => {
+                const [year, month, dayNum] = day.dateString.split('-').map(Number);
+                setNewEventDate(new Date(year, month - 1, dayNum));
+                setShowEventCalendar(false);
+              }}
+              onMonthChange={monthObj => {
+                setVisibleMonth(monthObj.month);
+                setVisibleYear(monthObj.year);
+              }}
+              markedDates={events.reduce((acc, ev) => {
+                acc[ev.date] = { selected: true, selectedColor: '#2D6A4F' };
+                return acc;
+              }, newEventDate ? { [newEventDate.toISOString().split('T')[0]]: {selected: true, selectedColor: '#2D6A4F'} } : {})}
+              theme={{ selectedDayBackgroundColor: '#2D6A4F', todayTextColor: '#2D6A4F' }}
+            />
+            {/* Lista de eventos do mês - sempre visível */}
+            <View style={{ marginTop: 12, marginBottom: 8 }}>
+              {events.filter(ev => {
+                const [y, m] = ev.date.split('-');
+                return Number(y) === visibleYear && Number(m) === visibleMonth;
+              }).length > 0 ? (
+                events.filter(ev => {
+                  const [y, m] = ev.date.split('-');
+                  return Number(y) === visibleYear && Number(m) === visibleMonth;
+                }).sort((a, b) => a.date.localeCompare(b.date)).map(ev => (
+                  <View key={ev.id} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                    <CalendarIcon size={16} color="#2D6A4F" style={{ marginRight: 6 }} />
+                    <Text style={{ fontWeight: '600', color: '#2D6A4F', marginRight: 8 }}>{ev.title}</Text>
+                    <Text style={{ color: '#666', marginRight: 8 }}>{ev.date.split('-').reverse().join('/')}</Text>
+                    <TouchableOpacity onPress={() => {
+                      Alert.alert(
+                        'Excluir evento',
+                        'Tem certeza que deseja excluir este evento?',
+                        [
+                          { text: 'Cancelar', style: 'cancel' },
+                          { text: 'Excluir', style: 'destructive', onPress: () => deleteEvent(ev.id) }
+                        ]
+                      );
+                    }} style={{ padding: 4 }}>
+                      <Trash2 size={16} color="#DC2626" />
+                    </TouchableOpacity>
+                  </View>
+                ))
+              ) : (
+                <Text style={{ color: '#888', fontSize: 13 }}>Nenhum evento agendado para este mês.</Text>
+              )}
+            </View>
             <TextInput
               style={{ borderWidth: 1, borderColor: '#E6E6E6', borderRadius: 8, padding: 10, marginBottom: 12, fontSize: 16, color: '#333' }}
               placeholder="Título do evento"
@@ -495,10 +534,13 @@ export default function TasksScreen() {
               </TouchableOpacity>
               <TouchableOpacity onPress={() => {
                 if (newEventDate && newEventTitle.trim()) {
-                  setEvents(prev => [
-                    { date: newEventDate.toISOString().split('T')[0], title: newEventTitle },
-                    ...prev
-                  ]);
+                  addEvent({
+                    id: Date.now().toString(),
+                    date: newEventDate.toISOString().split('T')[0],
+                    title: newEventTitle,
+                  });
+                  setVisibleMonth(newEventDate.getMonth() + 1);
+                  setVisibleYear(newEventDate.getFullYear());
                   setNewEventDate(null);
                   setNewEventTitle('');
                   setEventModalVisible(false);

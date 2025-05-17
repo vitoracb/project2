@@ -777,6 +777,8 @@ const IncomesTab: FC<{ incomes: any[]; setIncomes: React.Dispatch<React.SetState
     return matchesName && matchesCategory && matchesMember && matchesStart && matchesEnd;
   });
 
+  const { addPayment } = useFinance();
+
   const handleSaveIncome = () => {
     if (!form.paidMembers[0] || !form.amount.trim()) {
       Alert.alert('Preencha todos os campos obrigatórios!');
@@ -794,6 +796,14 @@ const IncomesTab: FC<{ incomes: any[]; setIncomes: React.Dispatch<React.SetState
       },
       ...prev,
     ]);
+    addPayment({
+      id: Date.now().toString(),
+      title: form.category,
+      amount: parseFloat(form.amount),
+      date: form.date.toISOString(),
+      description: form.description,
+      user: { id: '1', name: form.paidMembers[0] },
+    });
     setModalVisible(false);
     setForm({ title: '', amount: '', category: INCOME_CATEGORIES[0], date: new Date(), description: '', paidMembers: [] });
   };
