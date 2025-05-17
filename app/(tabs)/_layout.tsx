@@ -1,20 +1,28 @@
+import React from 'react';
 import { Tabs } from 'expo-router';
-import { StyleSheet, View, Text } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { House, CalendarClock, ClipboardList, FileText, MessageSquare, DollarSign, Hammer } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TabLayout() {
-  const insets = useSafeAreaInsets();
+  // const insets = useSafeAreaInsets(); // Não usar para tabBarStyle
   return (
     <Tabs
       screenOptions={({ route }) => ({
         tabBarActiveTintColor: '#2D6A4F',
         tabBarInactiveTintColor: '#6C584C',
-        tabBarStyle: [
-          styles.tabBar,
-          { paddingBottom: insets.bottom + 12, minHeight: 64 + insets.bottom },
-        ],
-        tabBarLabelStyle: styles.tabBarLabel,
+        tabBarStyle: {
+          backgroundColor: '#FFFFFF',
+          borderTopColor: '#E6E6E6',
+          paddingTop: 5,
+          paddingBottom: 10,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '500',
+          marginBottom: 4,
+        },
+        tabBarItemStyle: { flex: 1 },
         headerShown: false,
         tabBarIcon: ({ color, size }) => {
           switch (route.name) {
@@ -54,6 +62,7 @@ export default function TabLayout() {
         name="home/index"
         options={{
           title: 'Início',
+          headerShown: false,
           tabBarIcon: ({ color, size }) => <House size={size} color={color} />,
           tabBarLabel: 'Início',
         }}
@@ -95,12 +104,6 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
-  tabBar: {
-    backgroundColor: '#FFFFFF',
-    borderTopColor: '#E6E6E6',
-    marginBottom: 0,
-    paddingTop: 5,
-  },
   tabBarLabel: {
     fontSize: 12,
     fontWeight: '500',

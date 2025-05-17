@@ -36,7 +36,7 @@ import { AddExpenseModal } from '@/components/expenses/AddExpenseModal';
 import { useFinance, Payment } from '../../context/FinanceContext';
 import { useTasks, Task } from '../../context/TasksContext';
 import { AddTaskModal } from '../../../components/tasks/AddTaskModal';
-import { useRouter } from 'expo-router';
+import { useRouter, useNavigation } from 'expo-router';
 import { useEvents, Event as CalendarEvent } from '../../context/EventsContext';
 import { addDays, isAfter, isSameDay } from 'date-fns';
 import { Calendar as ReactNativeCalendar, LocaleConfig } from 'react-native-calendars';
@@ -46,6 +46,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { useComments } from '../../context/CommentsContext';
 import { MemberPicker } from '@/components/ui/MemberPicker';
 import { AddPaymentModal } from '@/components/ui/AddPaymentModal';
+import { UserAvatarButton } from '../../../components/UserAvatarButton';
+import { useClerk } from '@clerk/clerk-expo';
 
 export default function HomeScreen() {
   const [expenseModalVisible, setExpenseModalVisible] = React.useState(false);
@@ -297,11 +299,34 @@ export default function HomeScreen() {
     member: '',
   });
 
+  const navigation = useNavigation();
+
+  React.useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => <UserAvatarButton />,
+    });
+  }, [navigation]);
+
+  // Adicionar o estado e o modal de logout, se ainda não existir
+  const [logoutModalVisible, setLogoutModalVisible] = React.useState(false);
+
+  // Função de logout
+  const { signOut } = useClerk();
+
+  const handleLogout = async () => {
+    await signOut();
+    router.replace('/(auth)/sign-in');
+    setLogoutModalVisible(false);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Floresta Sagrada</Text>
+        <View style={{ marginBottom: 8 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={styles.title}>Floresta Sagrada</Text>
+            <UserAvatarButton onPress={() => setLogoutModalVisible(true)} />
+          </View>
           <Text style={styles.subtitle}>Fazenda Nossa Senhora Aparecida</Text>
         </View>
         
@@ -712,6 +737,28 @@ export default function HomeScreen() {
           ]);
         }}
       />
+      <Modal
+        visible={logoutModalVisible}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setLogoutModalVisible(false)}
+      >
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }}>
+          <View style={{ backgroundColor: 'white', borderRadius: 16, padding: 24, width: '80%' }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 16, color: '#2D6A4F', textAlign: 'center' }}>
+              Deseja sair da sua conta?
+            </Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12 }}>
+              <TouchableOpacity onPress={() => setLogoutModalVisible(false)} style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, backgroundColor: '#E6E6E6' }}>
+                <Text style={{ color: '#333', fontWeight: '500' }}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleLogout} style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, backgroundColor: '#2D6A4F' }}>
+                <Text style={{ color: 'white', fontWeight: '700' }}>Sair</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
