@@ -131,6 +131,7 @@ export function AddExpenseModal({ visible, onClose, onSave }: AddExpenseModalPro
                     selectedDayBackgroundColor: '#2D6A4F',
                     todayTextColor: '#2D6A4F',
                   }}
+                  hideArrows={false}
                 />
                 <TouchableOpacity style={styles.cancelButton} onPress={() => setShowDatePicker(false)}>
                   <Text style={styles.cancelButtonText}>Cancelar</Text>

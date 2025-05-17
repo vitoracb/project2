@@ -70,6 +70,7 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
                   }}
                   markedDates={date ? { [date.toISOString().split('T')[0]]: {selected: true, selectedColor: '#2D6A4F'} } : {}}
                   theme={{ selectedDayBackgroundColor: '#2D6A4F', todayTextColor: '#2D6A4F' }}
+                  hideArrows={false}
                 />
               </View>
             )}

@@ -67,6 +67,11 @@ export default function TasksScreen() {
   const inProgressTasks = filteredTasks.filter((task: Task) => task.status === 'IN_PROGRESS');
   const doneTasks = filteredTasks.filter((task: Task) => task.status === 'DONE');
   
+  // Lógica de cor do botão de filtro
+  const isAnyFilterActive = !!(filterName || filterStartDate || filterEndDate);
+  const filterButtonBg = isAnyFilterActive ? '#2D6A4F' : '#FFFFFF';
+  const filterIconColor = isAnyFilterActive ? '#fff' : '#2D6A4F';
+
   const handleSaveTask = () => {
     if (!newTaskTitle.trim() || !newTaskDate) return;
     if (editingTaskId) {
@@ -138,8 +143,8 @@ export default function TasksScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>Atividades</Text>
         <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.filterButton} onPress={() => setFilterModalVisible(true)}>
-            <Filter size={20} color="#333333" />
+          <TouchableOpacity style={[styles.filterButton, { backgroundColor: filterButtonBg }]} onPress={() => setFilterModalVisible(true)}>
+            <Filter size={20} color={filterIconColor} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.filterButton} onPress={() => setCalendarModalVisible(true)}>
             <CalendarIcon size={20} color="#333333" />

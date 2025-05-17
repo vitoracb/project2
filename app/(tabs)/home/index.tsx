@@ -479,6 +479,7 @@ export default function HomeScreen() {
               }}
               markedDates={markedDates}
               theme={{ selectedDayBackgroundColor: '#2D6A4F', todayTextColor: '#2D6A4F' }}
+              hideArrows={false}
             />
             {selectedDate && (
               <View style={{ marginTop: 16 }}>

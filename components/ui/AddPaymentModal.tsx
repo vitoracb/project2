@@ -87,6 +87,7 @@ export function AddPaymentModal({ visible, onClose, onSave }: AddPaymentModalPro
                     selectedDayBackgroundColor: '#2D6A4F',
                     todayTextColor: '#2D6A4F',
                   }}
+                  hideArrows={false}
                 />
                 <TouchableOpacity style={{ marginTop: 8, alignSelf: 'stretch', backgroundColor: '#E6E6E6', borderRadius: 8, padding: 12, alignItems: 'center' }} onPress={() => setShowDatePicker(false)}>
                   <Text style={{ color: '#333', fontWeight: '500' }}>Cancelar</Text>

@@ -118,10 +118,12 @@ const ExpensesTab: FC<{ expenses: Expense[]; setExpenses: React.Dispatch<React.S
     startDate: null as Date | null,
     endDate: null as Date | null,
     category: '',
+    member: '',
   });
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
   const [showCategoryDropdownFilter, setShowCategoryDropdownFilter] = useState(false);
+  const [showMemberDropdownFilter, setShowMemberDropdownFilter] = useState(false);
 
   // Seletor de ano para filtro mensal
   const availableYears = Array.from(
@@ -193,32 +195,12 @@ const ExpensesTab: FC<{ expenses: Expense[]; setExpenses: React.Dispatch<React.S
           const baseDate = new Date(exp.date);
           const originalDay = baseDate.getDate();
           const monthsDiff = (monthModal.year - baseDate.getFullYear()) * 12 + (monthModal.month - baseDate.getMonth());
-          // LOG DE DEPURAÇÃO
-          console.log('[PARCELA]', {
-            title: exp.title,
-            baseDate: baseDate.toISOString(),
-            modalYear: monthModal.year,
-            modalMonth: monthModal.month,
-            monthsDiff,
-            total,
-          });
           if (Number.isInteger(monthsDiff) && monthsDiff >= 0 && monthsDiff < total) {
             const year = baseDate.getFullYear() + Math.floor((baseDate.getMonth() + monthsDiff) / 12);
             const month = (baseDate.getMonth() + monthsDiff) % 12;
             const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
             const day = Math.min(originalDay, lastDayOfMonth);
             const d = new Date(year, month, day);
-            // LOG DE DEPURAÇÃO
-            console.log('[PARCELA-EXIBIDA]', {
-              title: exp.title,
-              parcela: monthsDiff + 1,
-              year,
-              month,
-              d: d.toISOString(),
-              modalYear: monthModal.year,
-              modalMonth: monthModal.month,
-              exibida: d.getFullYear() === monthModal.year && d.getMonth() === monthModal.month
-            });
             if (d.getFullYear() === monthModal.year && d.getMonth() === monthModal.month) {
               return [{
                 ...exp,
@@ -267,7 +249,6 @@ const ExpensesTab: FC<{ expenses: Expense[]; setExpenses: React.Dispatch<React.S
           : exp
       ));
     } else {
-      // Sempre cria apenas UMA despesa, mesmo se for parcelada
       setExpenses(prev => [
         {
           id: Date.now().toString(),
@@ -308,12 +289,20 @@ const ExpensesTab: FC<{ expenses: Expense[]; setExpenses: React.Dispatch<React.S
   const filteredExpenses = expenses.filter(exp => {
     const matchesName = !filters.name || exp.title.toLowerCase().includes(filters.name.toLowerCase());
     const matchesCategory = !filters.category || exp.category === filters.category;
+    const matchesMember = !filters.member || (exp.user && exp.user.name === filters.member);
     const expDate = new Date(exp.date);
     const matchesStart = !filters.startDate || expDate >= filters.startDate;
     const matchesEnd = !filters.endDate || expDate <= filters.endDate;
-    return matchesName && matchesCategory && matchesStart && matchesEnd;
+    return matchesName && matchesCategory && matchesMember && matchesStart && matchesEnd;
   });
   
+  // Verifica se algum filtro está ativo (para o botão de filtro)
+  const isAnyFilterActive = !!(filters.name || filters.category || filters.member || filters.startDate || filters.endDate);
+
+  // ExpensesTab: definir cor do botão e do ícone de filtro
+  const filterButtonBg = isAnyFilterActive ? '#2D6A4F' : '#E8F4EA';
+  const filterIconColor = isAnyFilterActive ? '#fff' : '#2D6A4F';
+
   return (
     <View style={styles.tabContainer}>
       <View style={styles.filterContainer}>
@@ -336,12 +325,15 @@ const ExpensesTab: FC<{ expenses: Expense[]; setExpenses: React.Dispatch<React.S
           {selectedType === 'GERAL' ? 'Despesas' : 'Despesas por mês'}
         </Text>
         <View style={{ flexDirection: 'row', gap: 8 }}>
-          <TouchableOpacity style={styles.addButton} onPress={() => setFilterModalVisible(true)}>
-            <FilterIcon size={20} color="#2D6A4F" />
+          <TouchableOpacity
+            style={[styles.addButton, { backgroundColor: filterButtonBg }]}
+            onPress={() => setFilterModalVisible(true)}
+          >
+            <FilterIcon size={20} color={filterIconColor} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
-          <Plus size={20} color="#2D6A4F" />
-        </TouchableOpacity>
+            <Plus size={20} color="#2D6A4F" />
+          </TouchableOpacity>
         </View>
       </View>
       
@@ -605,6 +597,43 @@ const ExpensesTab: FC<{ expenses: Expense[]; setExpenses: React.Dispatch<React.S
               </View>
             )}
             <View style={styles.inputRow}>
+              <Text style={styles.label}>Membro:</Text>
+              <TouchableOpacity
+                style={styles.dropdownButton}
+                onPress={() => setShowMemberDropdownFilter(v => !v)}
+              >
+                <Text style={styles.dropdownButtonText}>{filters.member || 'Selecionar membro'}</Text>
+              </TouchableOpacity>
+            </View>
+            {showMemberDropdownFilter && (
+              <View style={styles.dropdownList}>
+                {GROUP_MEMBERS.map(member => (
+                  <TouchableOpacity
+                    key={member}
+                    style={[
+                      styles.dropdownItem,
+                      filters.member === member && styles.dropdownItemSelected,
+                    ]}
+                    onPress={() => {
+                      setFilters(f => ({ ...f, member }));
+                      setShowMemberDropdownFilter(false);
+                    }}
+                  >
+                    <Text style={{ color: filters.member === member ? '#2D6A4F' : '#333' }}>{member}</Text>
+                  </TouchableOpacity>
+                ))}
+                <TouchableOpacity
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    setFilters(f => ({ ...f, member: '' }));
+                    setShowMemberDropdownFilter(false);
+                  }}
+                >
+                  <Text style={{ color: '#333' }}>Todos</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            <View style={styles.inputRow}>
               <Text style={styles.label}>Data início:</Text>
               <TouchableOpacity onPress={() => setShowStartDatePicker(true)} style={styles.dateButton}>
                 <Text style={styles.dateText}>{filters.startDate ? filters.startDate.toLocaleDateString('pt-BR') : 'Qualquer'}</Text>
@@ -650,7 +679,7 @@ const ExpensesTab: FC<{ expenses: Expense[]; setExpenses: React.Dispatch<React.S
             )}
             <View style={styles.modalActions}>
               <TouchableOpacity style={styles.cancelButton} onPress={() => {
-                setFilters({ name: '', startDate: null, endDate: null, category: '' });
+                setFilters({ name: '', startDate: null, endDate: null, category: '', member: '' });
                 setFilterModalVisible(false);
               }}>
                 <Text style={styles.cancelButtonText}>Limpar</Text>
@@ -687,10 +716,16 @@ const IncomesTab: FC<{ incomes: any[]; setIncomes: React.Dispatch<React.SetState
     startDate: null as Date | null,
     endDate: null as Date | null,
     category: '',
+    member: '',
   });
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
   const [showCategoryDropdownFilter, setShowCategoryDropdownFilter] = useState(false);
+  const [showMemberDropdownFilter, setShowMemberDropdownFilter] = useState(false);
+
+  const isAnyFilterActive = !!(filters.name || filters.category || filters.member || filters.startDate || filters.endDate);
+  const filterButtonBgIncomes = isAnyFilterActive ? '#2D6A4F' : '#E8F4EA';
+  const filterIconColorIncomes = isAnyFilterActive ? '#fff' : '#2D6A4F';
 
   // Agrupamento mensal igual ao de despesas
   const availableYears = Array.from(
@@ -735,10 +770,11 @@ const IncomesTab: FC<{ incomes: any[]; setIncomes: React.Dispatch<React.SetState
   const filteredIncomes = incomes.filter(inc => {
     const matchesName = !filters.name || (inc.title && inc.title.toLowerCase().includes(filters.name.toLowerCase()));
     const matchesCategory = !filters.category || inc.category === filters.category;
+    const matchesMember = !filters.member || (inc.paidMembers && inc.paidMembers[0] === filters.member);
     const incDate = new Date(inc.date);
     const matchesStart = !filters.startDate || incDate >= filters.startDate;
     const matchesEnd = !filters.endDate || incDate <= filters.endDate;
-    return matchesName && matchesCategory && matchesStart && matchesEnd;
+    return matchesName && matchesCategory && matchesMember && matchesStart && matchesEnd;
   });
 
   const handleSaveIncome = () => {
@@ -865,9 +901,12 @@ const IncomesTab: FC<{ incomes: any[]; setIncomes: React.Dispatch<React.SetState
           {selectedType === 'GERAL' ? 'Pagamentos' : 'Pagamentos por mês'}
               </Text>
         <View style={{ flexDirection: 'row', gap: 8 }}>
-          <TouchableOpacity style={styles.addButton} onPress={() => setFilterModalVisible(true)}>
-            <FilterIcon size={20} color="#2D6A4F" />
-            </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.addButton, { backgroundColor: filterButtonBgIncomes }]}
+            onPress={() => setFilterModalVisible(true)}
+          >
+            <FilterIcon size={20} color={filterIconColorIncomes} />
+          </TouchableOpacity>
           <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
             <Plus size={20} color="#2D6A4F" />
           </TouchableOpacity>
@@ -1137,6 +1176,44 @@ const IncomesTab: FC<{ incomes: any[]; setIncomes: React.Dispatch<React.SetState
                 </TouchableOpacity>
               </View>
             )}
+            {/* Filtro por membro */}
+            <View style={styles.inputRow}>
+              <Text style={styles.label}>Membro:</Text>
+              <TouchableOpacity
+                style={styles.dropdownButton}
+                onPress={() => setShowMemberDropdownFilter(v => !v)}
+              >
+                <Text style={styles.dropdownButtonText}>{filters.member || 'Selecionar membro'}</Text>
+              </TouchableOpacity>
+            </View>
+            {showMemberDropdownFilter && (
+              <View style={styles.dropdownList}>
+                {GROUP_MEMBERS.map(member => (
+                  <TouchableOpacity
+                    key={member}
+                    style={[
+                      styles.dropdownItem,
+                      filters.member === member && styles.dropdownItemSelected,
+                    ]}
+                    onPress={() => {
+                      setFilters(f => ({ ...f, member }));
+                      setShowMemberDropdownFilter(false);
+                    }}
+                  >
+                    <Text style={{ color: filters.member === member ? '#2D6A4F' : '#333' }}>{member}</Text>
+                  </TouchableOpacity>
+                ))}
+                <TouchableOpacity
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    setFilters(f => ({ ...f, member: '' }));
+                    setShowMemberDropdownFilter(false);
+                  }}
+                >
+                  <Text style={{ color: '#333' }}>Todos</Text>
+                </TouchableOpacity>
+              </View>
+            )}
             <View style={styles.inputRow}>
               <Text style={styles.label}>Data início:</Text>
               <TouchableOpacity onPress={() => setShowStartDatePicker(true)} style={styles.dateButton}>
@@ -1183,7 +1260,7 @@ const IncomesTab: FC<{ incomes: any[]; setIncomes: React.Dispatch<React.SetState
             )}
             <View style={styles.modalActions}>
               <TouchableOpacity style={styles.cancelButton} onPress={() => {
-                setFilters({ name: '', startDate: null, endDate: null, category: '' });
+                setFilters({ name: '', startDate: null, endDate: null, category: '', member: '' });
                 setFilterModalVisible(false);
               }}>
                 <Text style={styles.cancelButtonText}>Limpar</Text>
@@ -1250,7 +1327,7 @@ const FlowTabContent = React.memo(({
         </TouchableOpacity>
       </View>
       {/* Título Fluxo de Caixa */}
-      <Text style={{ fontSize: 22, fontWeight: '700', color: '#000', textAlign: 'left', alignSelf: 'flex-start', marginTop: 12, marginBottom: 16 }}>
+      <Text style={{ fontSize: 22, fontWeight: '700', color: '#000', textAlign: 'left', alignSelf: 'flex-start', marginTop: 24, marginBottom: 24 }}>
         Fluxo de Caixa
       </Text>
       {/* Seleção de mês/ano ou só ano */}
