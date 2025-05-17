@@ -31,7 +31,7 @@ import {
   ChevronRight
 } from 'lucide-react-native';
 import { AddExpenseModal } from '@/components/expenses/AddExpenseModal';
-import { useFinance } from '../../context/FinanceContext';
+import { useFinance, Payment } from '../../context/FinanceContext';
 import { useTasks, Task } from '../../context/TasksContext';
 import { AddTaskModal } from '../../../components/tasks/AddTaskModal';
 import { useRouter } from 'expo-router';
@@ -41,14 +41,18 @@ import { Calendar as ReactNativeCalendar, LocaleConfig } from 'react-native-cale
 import { useDocuments, DocumentCategory } from '../../context/DocumentsContext';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
+import { useComments } from '../../context/CommentsContext';
+import { MemberPicker } from '@/components/ui/MemberPicker';
+import { AddPaymentModal } from '@/components/ui/AddPaymentModal';
 
 export default function HomeScreen() {
   const [expenseModalVisible, setExpenseModalVisible] = React.useState(false);
-  const { expenses, incomes, setExpenses } = useFinance();
+  const { expenses, incomes, setExpenses, payments, addPayment, setIncomes, payments: paymentsList, setPayments } = useFinance();
   const { tasks, addTask, deleteTask } = useTasks();
   const { events, deleteEvent, addEvent } = useEvents();
   const router = useRouter();
-  const { addDocument } = useDocuments();
+  const { addDocument, documents, removeDocument } = useDocuments();
+  const { comments, removeComment } = useComments();
   const [uploadModalVisible, setUploadModalVisible] = React.useState(false);
   const [uploadForm, setUploadForm] = React.useState({
     title: '',
@@ -76,6 +80,7 @@ export default function HomeScreen() {
       ...expense,
       id: Date.now().toString(),
       user: { id: '1', name: 'Usuário' },
+      date: new Date().toISOString(),
     }, ...prev]);
     Alert.alert('Confirmação', 'Despesa adicionada com sucesso!');
   };
@@ -92,7 +97,7 @@ export default function HomeScreen() {
       description: newTaskDescription,
       status: 'TODO',
       priority: 'MEDIUM',
-      dueDate: newTaskDate.toISOString(),
+      dueDate: new Date().toISOString(),
     });
     setNewTaskTitle('');
     setNewTaskDescription('');
@@ -101,7 +106,7 @@ export default function HomeScreen() {
     setAddTaskModalVisible(false);
   };
 
-  // Adaptador para o formato do ActivityCard
+  // Adaptadores para o formato do ActivityCard
   function taskToActivity(task: Task) {
     return {
       id: task.id,
@@ -122,30 +127,85 @@ export default function HomeScreen() {
       entityId: event.id,
       details: { title: event.title },
       createdAt: event.date,
-      user: { name: 'Calendário' }
+      user: { name: 'Evento' }
     };
   }
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const validEvents = events; // Forçar exibição de todos os eventos para teste
-  const eventActivities = validEvents.map(eventToActivity);
-  const taskActivities = tasks
-    .map(taskToActivity)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  let recentActivities;
-  if (eventActivities.length > 0) {
-    const neededTasks = 3 - eventActivities.length;
-    recentActivities = [
-      ...eventActivities,
-      ...taskActivities.filter(t => !eventActivities.some(e => e.id === t.id)).slice(0, neededTasks)
-    ];
-  } else {
-    recentActivities = taskActivities.slice(0, 3);
+  function expenseToActivity(expense: import('../../context/FinanceContext').Expense) {
+    return {
+      id: expense.id,
+      action: 'Despesa Adicionada',
+      entityType: 'expense',
+      entityId: expense.id,
+      details: { title: expense.title, amount: expense.amount },
+      createdAt: expense.date,
+      user: { name: expense.user?.name || 'Usuário' }
+    };
   }
 
+  function paymentToActivity(payment: Payment) {
+    return {
+      id: payment.id,
+      action: 'Pagamento Adicionado',
+      entityType: 'payment',
+      entityId: payment.id,
+      details: { title: payment.title, amount: payment.amount },
+      createdAt: payment.date,
+      user: { name: payment.user?.name || 'Usuário' }
+    };
+  }
+
+  function documentToActivity(doc: import('../../context/DocumentsContext').Document) {
+    return {
+      id: doc.id,
+      action: 'Documento Enviado',
+      entityType: 'document',
+      entityId: doc.id,
+      details: { title: doc.title },
+      createdAt: doc.createdAt,
+      user: { name: doc.uploader?.name || 'Usuário' }
+    };
+  }
+
+  function commentToActivity(comment: import('../../context/CommentsContext').Comment) {
+    return {
+      id: comment.id,
+      action: 'Comentário Adicionado',
+      entityType: 'comment',
+      entityId: comment.id,
+      details: { content: comment.content },
+      createdAt: comment.createdAt,
+      user: { name: comment.user?.name || 'Usuário' }
+    };
+  }
+
+  // Unificar todas as atividades
+  const now = new Date();
+  // Eventos: só mostrar se a data do evento for até 1 dia após a data atual
+  const validEvents = events
+    .map(eventToActivity)
+    .filter(ev => {
+      const eventDate = new Date(ev.createdAt);
+      return eventDate.getTime() + 24 * 60 * 60 * 1000 > now.getTime();
+    });
+  // Outras atividades
+  const otherActivities = [
+    ...tasks.map(taskToActivity),
+    ...expenses.map(expenseToActivity),
+    ...payments.map(paymentToActivity),
+    ...documents.map(documentToActivity),
+    ...comments.map(commentToActivity),
+  ];
+  // Filtrar nulls antes de ordenar
+  const filteredOther = otherActivities.filter(Boolean);
+  filteredOther.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  // Eventos sempre no topo, ordenados por data
+  validEvents.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  // Pegar os 6 mais recentes, priorizando eventos
+  const recentActivities = [...validEvents, ...filteredOther].slice(0, 6);
+
   console.log('events:', events);
-  console.log('validEvents:', validEvents);
+  console.log('validEvents:', recentActivities);
 
   const [calendarModalVisible, setCalendarModalVisible] = React.useState(false);
   const [selectedDate, setSelectedDate] = React.useState<string | null>(null);
@@ -217,6 +277,22 @@ export default function HomeScreen() {
     setUploadForm({ title: '', category: '', file: null, description: '' });
   };
 
+  const handleAddEvent = (event: CalendarEvent) => {
+    addEvent({
+      ...event,
+      id: Date.now().toString(),
+      date: new Date().toISOString(),
+    });
+  };
+
+  const [paymentModalVisible, setPaymentModalVisible] = React.useState(false);
+  const [paymentForm, setPaymentForm] = React.useState({
+    title: '',
+    amount: '',
+    description: '',
+    member: '',
+  });
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -277,31 +353,53 @@ export default function HomeScreen() {
           <FlatList
             data={recentActivities}
             keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
+            renderItem={({ item }) => item ? (
               <ActivityCard
                 activity={item}
                 onDelete={() => {
                   Alert.alert(
                     'Excluir',
-                    item.entityType === 'event'
-                      ? 'Tem certeza que deseja excluir este evento?'
-                      : 'Tem certeza que deseja excluir esta tarefa?',
+                    (() => {
+                      switch (item.entityType) {
+                        case 'event': return 'Tem certeza que deseja excluir este evento?';
+                        case 'task': return 'Tem certeza que deseja excluir esta tarefa?';
+                        case 'expense': return 'Tem certeza que deseja excluir esta despesa?';
+                        case 'payment': return 'Tem certeza que deseja excluir este pagamento?';
+                        case 'document': return 'Tem certeza que deseja excluir este documento?';
+                        case 'comment': return 'Tem certeza que deseja excluir este comentário?';
+                        default: return 'Tem certeza que deseja excluir este item?';
+                      }
+                    })(),
                     [
                       { text: 'Cancelar', style: 'cancel' },
                       { text: 'Excluir', style: 'destructive', onPress: () => {
-                          console.log('Tentando deletar:', item.entityType, item.id);
-                          if (item.entityType === 'event') {
-                            deleteEvent(item.id);
-                          } else {
-                            deleteTask(item.id);
-                          }
+                        switch (item.entityType) {
+                          case 'event':
+                            deleteEvent(item.entityId);
+                            break;
+                          case 'task':
+                            deleteTask(item.entityId);
+                            break;
+                          case 'expense':
+                            setExpenses((prev: any[]) => prev.filter(exp => exp.id !== item.entityId));
+                            break;
+                          case 'payment':
+                            setPayments((prev: any[]) => prev.filter((pay: any) => pay.id !== item.entityId));
+                            setIncomes((prev: any[]) => prev.filter((inc: any) => inc.id !== item.entityId));
+                            break;
+                          case 'document':
+                            removeDocument(item.entityId);
+                            break;
+                          case 'comment':
+                            removeComment(item.entityId);
+                            break;
                         }
-                      }
+                      } },
                     ]
                   );
                 }}
               />
-            )}
+            ) : null}
             scrollEnabled={false}
           />
         </View>
@@ -335,6 +433,13 @@ export default function HomeScreen() {
                 <Calendar size={20} color="#74C69D" />
               </View>
               <Text style={styles.actionText}>Agendar evento</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.actionButton} onPress={() => setPaymentModalVisible(true)}>
+              <View style={[styles.actionIcon, styles.expenseIcon]}>
+                <DollarSign size={20} color="#2D6A4F" />
+              </View>
+              <Text style={styles.actionText}>Adicionar pagamento</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -395,7 +500,7 @@ export default function HomeScreen() {
                       /^\d{4}-\d{2}-\d{2}$/.test(selectedDate)
                     ) {
                       const eventId = `${selectedDate}-${eventTitleInput}-${Date.now()}`;
-                      addEvent({ date: selectedDate, title: eventTitleInput, id: eventId });
+                      handleAddEvent({ date: selectedDate, title: eventTitleInput, id: eventId });
                       setCalendarModalVisible(false);
                       setSelectedDate(null);
                       setEventTitleInput('');
@@ -495,13 +600,27 @@ export default function HomeScreen() {
                 <Text style={{ color: '#2D6A4F', fontWeight: '600' }}>Selecionar Documento</Text>
               </TouchableOpacity>
               {uploadForm.file && (
-                <View style={{ alignItems: 'center', marginBottom: 12 }}>
+                <TouchableOpacity
+                  onLongPress={() => {
+                    Alert.alert(
+                      'Remover arquivo',
+                      'Deseja remover o arquivo selecionado?',
+                      [
+                        { text: 'Cancelar', style: 'cancel' },
+                        { text: 'Remover', style: 'destructive', onPress: () => setUploadForm(f => ({ ...f, file: null })) },
+                      ]
+                    );
+                  }}
+                  activeOpacity={0.8}
+                  style={{ alignItems: 'center', marginBottom: 12 }}
+                >
                   {uploadForm.file.type.startsWith('image') ? (
                     <Image source={{ uri: uploadForm.file.uri }} style={{ width: 80, height: 80, borderRadius: 8 }} />
                   ) : (
                     <Text style={{ color: '#333' }}>{uploadForm.file.name}</Text>
                   )}
-                </View>
+                  <Text style={{ color: '#888', fontSize: 12, marginTop: 4 }}>(Segure para remover)</Text>
+                </TouchableOpacity>
               )}
               <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12 }}>
                 <TouchableOpacity onPress={() => setUploadModalVisible(false)} style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, backgroundColor: '#E6E6E6' }}>
@@ -515,6 +634,32 @@ export default function HomeScreen() {
           </KeyboardAvoidingView>
         </TouchableWithoutFeedback>
       </Modal>
+      <AddPaymentModal
+        visible={paymentModalVisible}
+        onClose={() => setPaymentModalVisible(false)}
+        onSave={({ member, amount, date, category, description }) => {
+          addPayment({
+            id: Date.now().toString(),
+            title: category,
+            amount: parseFloat(amount.replace(',', '.')),
+            date: date.toISOString(),
+            description,
+            user: { id: '1', name: member },
+          });
+          setIncomes(prev => [
+            {
+              id: Date.now().toString(),
+              title: category,
+              amount: parseFloat(amount.replace(',', '.')),
+              category,
+              date: date.toISOString(),
+              description,
+              paidMembers: [member],
+            },
+            ...prev,
+          ]);
+        }}
+      />
     </SafeAreaView>
   );
 }

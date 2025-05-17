@@ -4,13 +4,12 @@ import { Calendar } from 'react-native-calendars';
 import { Plus } from 'lucide-react-native';
 
 const CATEGORIES = [
-  'Mensalidade',
-  'Taxa Extra',
   'Funcionário',
   'Insumos',
   'Infraestrutura',
   'Maquinário',
   'Mão de Obra',
+  'E-Social',
   'Outros',
 ];
 

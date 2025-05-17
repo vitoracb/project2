@@ -30,11 +30,26 @@ export interface Income {
   // outros campos se necessário
 }
 
+export interface Payment {
+  id: string;
+  title: string;
+  amount: number;
+  date: string;
+  description?: string;
+  user: {
+    id: string;
+    name: string;
+  };
+}
+
 interface FinanceContextProps {
   expenses: Expense[];
   setExpenses: React.Dispatch<React.SetStateAction<Expense[]>>;
   incomes: Income[];
   setIncomes: React.Dispatch<React.SetStateAction<Income[]>>;
+  payments: Payment[];
+  setPayments: React.Dispatch<React.SetStateAction<Payment[]>>;
+  addPayment: (payment: Payment) => void;
 }
 
 const FinanceContext = createContext<FinanceContextProps | undefined>(undefined);
@@ -42,9 +57,14 @@ const FinanceContext = createContext<FinanceContextProps | undefined>(undefined)
 export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [incomes, setIncomes] = useState<Income[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
+
+  const addPayment = (payment: Payment) => {
+    setPayments(prev => [payment, ...prev]);
+  };
 
   return (
-    <FinanceContext.Provider value={{ expenses, setExpenses, incomes, setIncomes }}>
+    <FinanceContext.Provider value={{ expenses, setExpenses, incomes, setIncomes, payments, setPayments, addPayment }}>
       {children}
     </FinanceContext.Provider>
   );

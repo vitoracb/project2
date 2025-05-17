@@ -9,7 +9,8 @@ import {
   KeyboardAvoidingView, 
   Platform,
   Image,
-  ScrollView
+  ScrollView,
+  Modal
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CommentCard, Comment } from '@/components/comments/CommentCard';
@@ -18,6 +19,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import * as WebBrowser from 'expo-web-browser';
 import { ActionSheetIOS, Alert } from 'react-native';
+import { useComments } from '../../context/CommentsContext';
 
 // Mock data for comments
 const initialComments: Comment[] = [];
@@ -25,9 +27,11 @@ const initialComments: Comment[] = [];
 const USER_ID = '0'; // id do usuário logado
 
 export default function CommentsScreen() {
-  const [comments, setComments] = useState<Comment[]>(initialComments);
+  const { comments, addComment, removeComment } = useComments();
   const [message, setMessage] = useState('');
   const [attachments, setAttachments] = useState<string[]>([]);
+  const [imageModalVisible, setImageModalVisible] = useState(false);
+  const [modalImageUri, setModalImageUri] = useState<string | null>(null);
   
   const renderComment = ({ item }: { item: Comment }) => {
     const handleReply = (parentId: string, content: string, attachments: string[] = []) => {
@@ -39,7 +43,7 @@ export default function CommentsScreen() {
         user: { id: USER_ID, name: 'Você' },
         parentId,
       };
-      setComments(prev => [newReply, ...prev]);
+      addComment(newReply);
     };
     const replies = comments.filter(comment => comment.parentId === item.id);
     return (
@@ -57,9 +61,14 @@ export default function CommentsScreen() {
   // Filter out replies to show only parent comments in the main list
   const parentComments = comments.filter(comment => !comment.parentId);
   
-  // Função para abrir arquivo/foto
+  // Função para abrir preview ou arquivo
   const handleOpenAttachment = (uri: string) => {
-    WebBrowser.openBrowserAsync(uri);
+    if (uri.match(/\.(jpg|jpeg|png|gif)$/i)) {
+      setModalImageUri(uri);
+      setImageModalVisible(true);
+    } else {
+      WebBrowser.openBrowserAsync(uri);
+    }
   };
 
   // Função para adicionar anexo
@@ -129,7 +138,7 @@ export default function CommentsScreen() {
         createdAt: new Date().toISOString(),
         user: { id: USER_ID, name: 'Você' },
       };
-      setComments(prev => [newComment, ...prev]);
+      addComment(newComment);
       setMessage('');
       setAttachments([]);
     }
@@ -143,7 +152,7 @@ export default function CommentsScreen() {
       [
         { text: 'Cancelar', style: 'cancel' },
         { text: 'Excluir', style: 'destructive', onPress: () => {
-            setComments(prev => prev.filter(c => c.id !== commentId && c.parentId !== commentId));
+            removeComment(commentId);
           }
         }
       ]
@@ -197,6 +206,17 @@ export default function CommentsScreen() {
           <Send size={20} color={message.trim() ? "#FFFFFF" : "#A0A0A0"} />
         </TouchableOpacity>
       </KeyboardAvoidingView>
+      {/* Modal de preview de imagem do anexo antes do envio */}
+      <Modal visible={imageModalVisible} transparent animationType="fade" onRequestClose={() => setImageModalVisible(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center' }}>
+          {modalImageUri && (
+            <Image source={{ uri: modalImageUri }} style={{ width: '90%', height: '70%', resizeMode: 'contain', borderRadius: 16 }} />
+          )}
+          <TouchableOpacity onPress={() => setImageModalVisible(false)} style={{ marginTop: 24, padding: 16 }}>
+            <Text style={{ color: 'white', fontSize: 18 }}>Fechar</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

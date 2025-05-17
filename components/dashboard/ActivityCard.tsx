@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Card } from '../ui/Card';
-import { Clock, Trash2 } from 'lucide-react-native';
+import { Clock, Trash2, DollarSign, FileText, ClipboardList, Calendar } from 'lucide-react-native';
 
 export interface Activity {
   id: string;
@@ -32,7 +32,18 @@ export function ActivityCard({ activity, onDelete }: ActivityCardProps) {
   };
 
   const getActivityIcon = () => {
-    // Could expand this to show different icons based on activity type
+    if (activity.entityType === 'expense' || activity.entityType === 'payment') {
+      return <DollarSign size={18} color="#2D6A4F" />;
+    }
+    if (activity.entityType === 'document') {
+      return <FileText size={18} color="#2D6A4F" />;
+    }
+    if (activity.entityType === 'task') {
+      return <ClipboardList size={18} color="#2D6A4F" />;
+    }
+    if (activity.entityType === 'event') {
+      return <Calendar size={18} color="#2D6A4F" />;
+    }
     return <Clock size={18} color="#40916C" />;
   };
 
@@ -53,12 +64,14 @@ export function ActivityCard({ activity, onDelete }: ActivityCardProps) {
       </View>
       <View style={styles.content}>
         <Text style={styles.action}>
-          {activity.entityType === 'event' || activity.entityType === 'task'
-            ? activity.action
-            : `${activity.action} a ${formatEntityType(activity.entityType)}`}
+          {activity.entityType === 'comment'
+            ? 'Comentário Adicionado'
+            : (activity.entityType === 'event' || activity.entityType === 'task' || activity.entityType === 'expense' || activity.entityType === 'document' || activity.entityType === 'payment'
+                ? activity.action
+                : `${activity.action} a ${formatEntityType(activity.entityType)}`)}
         </Text>
         <Text style={styles.details}>
-          {activity.details?.title || activity.details?.name || ''}
+          {activity.details?.title || activity.details?.name || activity.details?.content || ''}
         </Text>
         {onDelete && (
           <TouchableOpacity
