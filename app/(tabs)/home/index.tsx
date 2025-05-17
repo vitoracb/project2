@@ -29,7 +29,8 @@ import {
   Calendar,
   Plus,
   ChevronRight,
-  Trash2
+  Trash2,
+  MessageCircle
 } from 'lucide-react-native';
 import { AddExpenseModal } from '@/components/expenses/AddExpenseModal';
 import { useFinance, Payment } from '../../context/FinanceContext';
@@ -444,6 +445,13 @@ export default function HomeScreen() {
               </View>
               <Text style={styles.actionText}>Adicionar pagamento</Text>
             </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/comments')}>
+              <View style={[styles.actionIcon, styles.commentIcon]}>
+                <MessageCircle size={20} color="#6C584C" />
+              </View>
+              <Text style={styles.actionText}>Deixar Comentário</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
@@ -729,6 +737,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     color: '#6C584C',
+    marginBottom: 24,
   },
   statsContainer: {
     flexDirection: 'row',
@@ -837,6 +846,9 @@ const styles = StyleSheet.create({
   },
   eventIcon: {
     backgroundColor: '#C7F9CC',
+  },
+  commentIcon: {
+    backgroundColor: '#E8F4EA',
   },
   actionText: {
     fontSize: 14,

@@ -156,7 +156,7 @@ export function CommentCard({ comment, isReply = false, onReply, onDelete, userI
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionButton} onPress={handleReply}>
           <MessageCircle size={16} color="#6C584C" />
-          <Text style={styles.actionText}>Comentar</Text>
+          <Text style={styles.actionText}>Responder</Text>
         </TouchableOpacity>
       </View>
       {/* Campo de resposta */}

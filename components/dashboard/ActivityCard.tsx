@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Card } from '../ui/Card';
-import { Clock, Trash2, DollarSign, FileText, ClipboardList, Calendar } from 'lucide-react-native';
+import { Clock, Trash2, DollarSign, FileText, ClipboardList, Calendar, MessageCircle } from 'lucide-react-native';
 
 export interface Activity {
   id: string;
@@ -43,6 +43,9 @@ export function ActivityCard({ activity, onDelete }: ActivityCardProps) {
     }
     if (activity.entityType === 'event') {
       return <Calendar size={18} color="#2D6A4F" />;
+    }
+    if (activity.entityType === 'comment') {
+      return <MessageCircle size={18} color="#6C584C" />;
     }
     return <Clock size={18} color="#40916C" />;
   };
