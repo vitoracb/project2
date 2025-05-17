@@ -203,8 +203,8 @@ export default function HomeScreen() {
   filteredOther.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   // Eventos sempre no topo, ordenados por data
   validEvents.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  // Pegar os 6 mais recentes, priorizando eventos
-  const recentActivities = [...validEvents, ...filteredOther].slice(0, 6);
+  // Pegar os 5 mais recentes, priorizando eventos
+  const recentActivities = [...validEvents, ...filteredOther].slice(0, 5);
 
   console.log('events:', events);
   console.log('validEvents:', recentActivities);
