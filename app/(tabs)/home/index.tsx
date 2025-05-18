@@ -84,7 +84,7 @@ export default function HomeScreen() {
       ...expense,
       id: Date.now().toString(),
       user: { id: '1', name: 'Usuário' },
-      date: new Date().toISOString(),
+      date: expense.date instanceof Date ? expense.date.toISOString() : expense.date,
     }, ...prev]);
     Alert.alert('Confirmação', 'Despesa adicionada com sucesso!');
   };
@@ -101,7 +101,7 @@ export default function HomeScreen() {
       description: newTaskDescription,
       status: 'TODO',
       priority: 'MEDIUM',
-      dueDate: new Date().toISOString(),
+      dueDate: newTaskDate ? newTaskDate.toISOString() : new Date().toISOString(),
     });
     setNewTaskTitle('');
     setNewTaskDescription('');
@@ -202,10 +202,11 @@ export default function HomeScreen() {
   ];
   // Filtrar nulls antes de ordenar
   const filteredOther = otherActivities.filter(Boolean);
-  filteredOther.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  // Eventos sempre no topo, ordenados por data
+  // Ordenar eventos do mais recente para o mais antigo
   validEvents.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  // Pegar os 5 mais recentes, priorizando eventos
+  // Ordenar outras atividades do mais recente para o mais antigo
+  filteredOther.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  // Concatenar eventos no topo e depois as outras atividades
   const recentActivities = [...validEvents, ...filteredOther].slice(0, 5);
 
   console.log('events:', events);
@@ -287,7 +288,7 @@ export default function HomeScreen() {
     addEvent({
       ...event,
       id: Date.now().toString(),
-      date: (event.date && event.date.length > 10 ? event.date.split('T')[0] : event.date) || new Date().toISOString().split('T')[0],
+      date: event.date,
     });
   };
 
@@ -443,11 +444,11 @@ export default function HomeScreen() {
               <Text style={styles.actionText}>Adicionar despesa</Text>
             </TouchableOpacity>
             
-            <TouchableOpacity style={styles.actionButton} onPress={() => setUploadModalVisible(true)}>
-              <View style={[styles.actionIcon, styles.documentIcon]}>
-                <FileText size={20} color="#40916C" />
+            <TouchableOpacity style={styles.actionButton} onPress={() => setPaymentModalVisible(true)}>
+              <View style={[styles.actionIcon, styles.expenseIcon]}>
+                <DollarSign size={20} color="#2D6A4F" />
               </View>
-              <Text style={styles.actionText}>Enviar documento</Text>
+              <Text style={styles.actionText}>Adicionar pagamento</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.actionButton} onPress={() => setAddTaskModalVisible(true)}>
@@ -464,11 +465,11 @@ export default function HomeScreen() {
               <Text style={styles.actionText}>Agendar evento</Text>
             </TouchableOpacity>
             
-            <TouchableOpacity style={styles.actionButton} onPress={() => setPaymentModalVisible(true)}>
-              <View style={[styles.actionIcon, styles.expenseIcon]}>
-                <DollarSign size={20} color="#2D6A4F" />
+            <TouchableOpacity style={styles.actionButton} onPress={() => setUploadModalVisible(true)}>
+              <View style={[styles.actionIcon, styles.documentIcon]}>
+                <FileText size={20} color="#40916C" />
               </View>
-              <Text style={styles.actionText}>Adicionar pagamento</Text>
+              <Text style={styles.actionText}>Enviar documento</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/comments')}>
@@ -601,114 +602,116 @@ export default function HomeScreen() {
         onRequestClose={() => setUploadModalVisible(false)}
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-            <View style={{ backgroundColor: 'white', borderRadius: 16, padding: 24, width: '90%' }}>
-              <Text style={{ fontSize: 20, fontWeight: '700', marginBottom: 16, color: '#2D6A4F', textAlign: 'center' }}>
-                Enviar Documento
-              </Text>
-              <Text style={{ fontWeight: '600', marginBottom: 8 }}>Categoria</Text>
-              <TouchableOpacity
-                style={{ borderWidth: 1, borderColor: '#E6E6E6', borderRadius: 8, padding: 12, marginBottom: 12, backgroundColor: '#F0F0F0' }}
-                onPress={() => {
-                  const categorias: DocumentCategory[] = ['DEED', 'MAP', 'CERTIFICATE', 'RECEIPT', 'OTHER'];
-                  const labels = categorias.map(cat => {
-                    switch (cat) {
-                      case 'DEED': return 'Escritura';
-                      case 'MAP': return 'Mapas';
-                      case 'CERTIFICATE': return 'Certificados';
-                      case 'RECEIPT': return 'Recibos';
-                      case 'OTHER': return 'Outros';
-                    }
-                  });
-                  if (Platform.OS === 'ios') {
-                    ActionSheetIOS.showActionSheetWithOptions(
-                      {
-                        options: [...labels, 'Cancelar'],
-                        cancelButtonIndex: labels.length,
-                      },
-                      (buttonIndex) => {
-                        if (buttonIndex < labels.length) {
-                          setUploadForm(f => ({ ...f, category: categorias[buttonIndex] }));
-                        }
-                      }
-                    );
-                  } else {
-                    const buttons: any[] = labels.map((label, idx) => ({
-                      text: label,
-                      onPress: () => setUploadForm(f => ({ ...f, category: categorias[idx] })),
-                    }));
-                    buttons.push({ text: 'Cancelar', style: 'cancel' });
-                    Alert.alert(
-                      'Selecione a categoria',
-                      undefined,
-                      buttons
-                    );
-                  }
-                }}
-              >
-                <Text style={{ color: uploadForm.category ? '#333' : '#888', fontWeight: '500' }}>
-                  {uploadForm.category ?
-                    (uploadForm.category === 'DEED' ? 'Escritura' :
-                      uploadForm.category === 'MAP' ? 'Mapas' :
-                      uploadForm.category === 'CERTIFICATE' ? 'Certificados' :
-                      uploadForm.category === 'RECEIPT' ? 'Recibos' :
-                      'Outros')
-                    : 'Selecione a categoria'}
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }}>
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ width: '100%', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
+              <View style={{ backgroundColor: 'white', borderRadius: 16, padding: 24, width: '90%' }}>
+                <Text style={{ fontSize: 20, fontWeight: '700', marginBottom: 16, color: '#2D6A4F', textAlign: 'center' }}>
+                  Enviar Documento
                 </Text>
-              </TouchableOpacity>
-              <Text style={{ fontWeight: '600', marginBottom: 8 }}>Nome do documento</Text>
-              <TextInput
-                style={{ borderWidth: 1, borderColor: '#E6E6E6', borderRadius: 8, padding: 10, marginBottom: 12, fontSize: 16, color: '#333' }}
-                placeholder="Nome do documento"
-                value={uploadForm.title}
-                onChangeText={t => setUploadForm(f => ({ ...f, title: t }))}
-              />
-              <TextInput
-                style={{ borderWidth: 1, borderColor: '#E6E6E6', borderRadius: 8, padding: 10, marginBottom: 12, fontSize: 16, color: '#333', minHeight: 40 }}
-                placeholder="Observações (opcional)"
-                value={uploadForm.description}
-                onChangeText={t => setUploadForm(f => ({ ...f, description: t }))}
-                multiline
-              />
-              <TouchableOpacity
-                style={{ borderWidth: 1, borderColor: '#E6E6E6', borderRadius: 8, padding: 12, marginBottom: 12, backgroundColor: '#F0F0F0', alignItems: 'center' }}
-                onPress={handlePickFile}
-              >
-                <Text style={{ color: '#2D6A4F', fontWeight: '600' }}>Selecionar Documento</Text>
-              </TouchableOpacity>
-              {uploadForm.file && (
+                <Text style={{ fontWeight: '600', marginBottom: 8 }}>Categoria</Text>
                 <TouchableOpacity
-                  onLongPress={() => {
-                    Alert.alert(
-                      'Remover arquivo',
-                      'Deseja remover o arquivo selecionado?',
-                      [
-                        { text: 'Cancelar', style: 'cancel' },
-                        { text: 'Remover', style: 'destructive', onPress: () => setUploadForm(f => ({ ...f, file: null })) },
-                      ]
-                    );
+                  style={{ borderWidth: 1, borderColor: '#E6E6E6', borderRadius: 8, padding: 12, marginBottom: 12, backgroundColor: '#F0F0F0' }}
+                  onPress={() => {
+                    const categorias: DocumentCategory[] = ['DEED', 'MAP', 'CERTIFICATE', 'RECEIPT', 'OTHER'];
+                    const labels = categorias.map(cat => {
+                      switch (cat) {
+                        case 'DEED': return 'Escritura';
+                        case 'MAP': return 'Mapas';
+                        case 'CERTIFICATE': return 'Certificados';
+                        case 'RECEIPT': return 'Recibos';
+                        case 'OTHER': return 'Outros';
+                      }
+                    });
+                    if (Platform.OS === 'ios') {
+                      ActionSheetIOS.showActionSheetWithOptions(
+                        {
+                          options: [...labels, 'Cancelar'],
+                          cancelButtonIndex: labels.length,
+                        },
+                        (buttonIndex) => {
+                          if (buttonIndex < labels.length) {
+                            setUploadForm(f => ({ ...f, category: categorias[buttonIndex] }));
+                          }
+                        }
+                      );
+                    } else {
+                      const buttons: any[] = labels.map((label, idx) => ({
+                        text: label,
+                        onPress: () => setUploadForm(f => ({ ...f, category: categorias[idx] })),
+                      }));
+                      buttons.push({ text: 'Cancelar', style: 'cancel' });
+                      Alert.alert(
+                        'Selecione a categoria',
+                        undefined,
+                        buttons
+                      );
+                    }
                   }}
-                  activeOpacity={0.8}
-                  style={{ alignItems: 'center', marginBottom: 12 }}
                 >
-                  {uploadForm.file.type.startsWith('image') ? (
-                    <Image source={{ uri: uploadForm.file.uri }} style={{ width: 80, height: 80, borderRadius: 8 }} />
-                  ) : (
-                    <Text style={{ color: '#333' }}>{uploadForm.file.name}</Text>
-                  )}
-                  <Text style={{ color: '#888', fontSize: 12, marginTop: 4 }}>(Segure para remover)</Text>
+                  <Text style={{ color: uploadForm.category ? '#333' : '#888', fontWeight: '500' }}>
+                    {uploadForm.category ?
+                      (uploadForm.category === 'DEED' ? 'Escritura' :
+                        uploadForm.category === 'MAP' ? 'Mapas' :
+                        uploadForm.category === 'CERTIFICATE' ? 'Certificados' :
+                        uploadForm.category === 'RECEIPT' ? 'Recibos' :
+                        'Outros')
+                      : 'Selecione a categoria'}
+                  </Text>
                 </TouchableOpacity>
-              )}
-              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12 }}>
-                <TouchableOpacity onPress={() => setUploadModalVisible(false)} style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, backgroundColor: '#E6E6E6' }}>
-                  <Text style={{ color: '#333', fontWeight: '500' }}>Cancelar</Text>
+                <Text style={{ fontWeight: '600', marginBottom: 8 }}>Nome do documento</Text>
+                <TextInput
+                  style={{ borderWidth: 1, borderColor: '#E6E6E6', borderRadius: 8, padding: 10, marginBottom: 12, fontSize: 16, color: '#333' }}
+                  placeholder="Nome do documento"
+                  value={uploadForm.title}
+                  onChangeText={t => setUploadForm(f => ({ ...f, title: t }))}
+                />
+                <TextInput
+                  style={{ borderWidth: 1, borderColor: '#E6E6E6', borderRadius: 8, padding: 10, marginBottom: 12, fontSize: 16, color: '#333', minHeight: 40 }}
+                  placeholder="Observações (opcional)"
+                  value={uploadForm.description}
+                  onChangeText={t => setUploadForm(f => ({ ...f, description: t }))}
+                  multiline
+                />
+                <TouchableOpacity
+                  style={{ borderWidth: 1, borderColor: '#E6E6E6', borderRadius: 8, padding: 12, marginBottom: 12, backgroundColor: '#F0F0F0', alignItems: 'center' }}
+                  onPress={handlePickFile}
+                >
+                  <Text style={{ color: '#2D6A4F', fontWeight: '600' }}>Selecionar Documento</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={handleSaveDocument} style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, backgroundColor: '#2D6A4F' }}>
-                  <Text style={{ color: 'white', fontWeight: '700' }}>Salvar</Text>
-                </TouchableOpacity>
+                {uploadForm.file && (
+                  <TouchableOpacity
+                    onLongPress={() => {
+                      Alert.alert(
+                        'Remover arquivo',
+                        'Deseja remover o arquivo selecionado?',
+                        [
+                          { text: 'Cancelar', style: 'cancel' },
+                          { text: 'Remover', style: 'destructive', onPress: () => setUploadForm(f => ({ ...f, file: null })) },
+                        ]
+                      );
+                    }}
+                    activeOpacity={0.8}
+                    style={{ alignItems: 'center', marginBottom: 12 }}
+                  >
+                    {uploadForm.file.type.startsWith('image') ? (
+                      <Image source={{ uri: uploadForm.file.uri }} style={{ width: 80, height: 80, borderRadius: 8 }} />
+                    ) : (
+                      <Text style={{ color: '#333' }}>{uploadForm.file.name}</Text>
+                    )}
+                    <Text style={{ color: '#888', fontSize: 12, marginTop: 4 }}>(Segure para remover)</Text>
+                  </TouchableOpacity>
+                )}
+                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12 }}>
+                  <TouchableOpacity onPress={() => setUploadModalVisible(false)} style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, backgroundColor: '#E6E6E6' }}>
+                    <Text style={{ color: '#333', fontWeight: '500' }}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={handleSaveDocument} style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, backgroundColor: '#2D6A4F' }}>
+                    <Text style={{ color: 'white', fontWeight: '700' }}>Salvar</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
-          </KeyboardAvoidingView>
+            </KeyboardAvoidingView>
+          </View>
         </TouchableWithoutFeedback>
       </Modal>
       <AddPaymentModal

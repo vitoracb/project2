@@ -34,16 +34,16 @@ export function AddExpenseModal({ visible, onClose, onSave }: AddExpenseModalPro
 
   useEffect(() => {
     if (!visible) {
-      setForm({
+      setForm(f => ({
+        ...f,
         title: '',
         amount: '',
         category: CATEGORIES[0],
-        date: new Date(),
         showCategoryDropdown: false,
         description: '',
         paymentMethod: 'Dinheiro',
         installments: '',
-      });
+      }));
       setShowDatePicker(false);
     }
   }, [visible]);
@@ -117,8 +117,9 @@ export function AddExpenseModal({ visible, onClose, onSave }: AddExpenseModalPro
               </TouchableOpacity>
             </View>
             {showDatePicker && (
-              <View style={styles.calendarModal}>
+              <View style={[styles.calendarModal, { alignItems: 'center', justifyContent: 'center' }]}>
                 <Calendar
+                  style={{ width: 340, alignSelf: 'center' }}
                   onDayPress={day => {
                     const [year, month, dayNum] = day.dateString.split('-').map(Number);
                     setForm({ ...form, date: new Date(year, month - 1, dayNum) });
@@ -132,6 +133,11 @@ export function AddExpenseModal({ visible, onClose, onSave }: AddExpenseModalPro
                     todayTextColor: '#2D6A4F',
                   }}
                   hideArrows={false}
+                  renderArrow={direction => (
+                    <Text style={{ fontSize: 24, color: '#2D6A4F', paddingHorizontal: 8 }}>
+                      {direction === 'left' ? '<' : '>'}
+                    </Text>
+                  )}
                 />
                 <TouchableOpacity style={styles.cancelButton} onPress={() => setShowDatePicker(false)}>
                   <Text style={styles.cancelButtonText}>Cancelar</Text>
@@ -303,5 +309,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     elevation: 4,
     zIndex: 20,
+    width: 340,
+    minWidth: 320,
   },
 }); 
