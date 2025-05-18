@@ -129,11 +129,11 @@ export function CommentCard({ comment, isReply = false, onReply, onDelete, userI
       <View style={styles.header}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>
-            {comment.user.name.charAt(0)}
+            {comment.user?.name?.charAt(0) || '?'}
           </Text>
         </View>
         <View style={styles.userInfo}>
-          <Text style={styles.userName}>{comment.user.name}</Text>
+          <Text style={styles.userName}>{comment.user?.name || 'Usuário'}</Text>
           <Text style={styles.timestamp}>{formatDate(comment.createdAt)}</Text>
         </View>
         {/* Lixeira só aparece se for o autor */}
@@ -143,20 +143,20 @@ export function CommentCard({ comment, isReply = false, onReply, onDelete, userI
           </TouchableOpacity>
         )}
       </View>
-      <Text style={isReply ? styles.replyCardContent : styles.content}>{comment.content}</Text>
-      {comment.attachments.length > 0 && (
+      <Text style={isReply ? styles.replyCardContent : styles.content}>{comment.content || ''}</Text>
+      {comment.attachments && comment.attachments.length > 0 && (
         <View style={styles.attachments}>
           <View style={styles.attachmentHeader}>
             <Paperclip size={14} color="#6C584C" />
             <Text style={styles.attachmentTitle}>
-              {comment.attachments.length} Attachment{comment.attachments.length > 1 ? 's' : ''}
+              {comment.attachments.length} Anexo{comment.attachments.length > 1 ? 's' : ''}
             </Text>
           </View>
           {comment.attachments.map((attachment, index) => (
             <TouchableOpacity key={index} style={styles.attachmentItem} onPress={() => handleOpenAttachment(attachment)}>
               <FileText size={14} color="#2D6A4F" />
               <Text style={styles.attachmentName} numberOfLines={1}>
-                {attachment.split('/').pop()}
+                {typeof attachment === 'string' ? attachment.split('/').pop() : ''}
               </Text>
             </TouchableOpacity>
           ))}

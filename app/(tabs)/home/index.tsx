@@ -30,7 +30,9 @@ import {
   Plus,
   ChevronRight,
   Trash2,
-  MessageCircle
+  MessageCircle,
+  HandCoins,
+  Wallet
 } from 'lucide-react-native';
 import { AddExpenseModal } from '@/components/expenses/AddExpenseModal';
 import { useFinance, Payment } from '../../context/FinanceContext';
@@ -451,14 +453,14 @@ export default function HomeScreen() {
           <View style={styles.actionsContainer}>
             <TouchableOpacity style={styles.actionButton} onPress={() => setExpenseModalVisible(true)}>
               <View style={[styles.actionIcon, styles.expenseIcon]}>
-                <DollarSign size={20} color="#2D6A4F" />
+                <Wallet size={20} color="#2D6A4F" />
               </View>
               <Text style={styles.actionText}>Adicionar despesa</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.actionButton} onPress={() => setPaymentModalVisible(true)}>
               <View style={[styles.actionIcon, styles.expenseIcon]}>
-                <DollarSign size={20} color="#2D6A4F" />
+                <HandCoins size={20} color="#2D6A4F" />
               </View>
               <Text style={styles.actionText}>Adicionar pagamento</Text>
             </TouchableOpacity>

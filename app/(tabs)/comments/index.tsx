@@ -45,7 +45,8 @@ export default function CommentsScreen() {
     const replies = comments.filter(comment => comment.parentId === item.id);
     return (
       <View style={styles.commentThread}>
-   <CommentCard comment={item} isReply={!!item.parentId} onReply={handleReply} onDelete={handleDeleteComment} userId={USER_ID} />        {replies.map(reply => (
+        <CommentCard comment={item} isReply={!!item.parentId} onReply={handleReply} onDelete={handleDeleteComment} userId={USER_ID} />
+        {replies.map(reply => (
           <React.Fragment key={reply.id}>
             {renderComment({ item: reply })}
           </React.Fragment>

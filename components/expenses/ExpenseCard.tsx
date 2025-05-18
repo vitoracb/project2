@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
-import { DollarSign, Calendar, CircleCheck as CheckCircle2, Circle as XCircle, Trash2 } from 'lucide-react-native';
+import { DollarSign, Calendar, CircleCheck as CheckCircle2, Circle as XCircle, Trash2, Wallet } from 'lucide-react-native';
 
 export interface Expense {
   id: string;
@@ -50,7 +50,7 @@ export function ExpenseCard({ expense, onPress, onDelete }: ExpenseCardProps) {
       <Card style={styles.card}>
         <View style={styles.header}>
           <View style={styles.iconContainer}>
-            <DollarSign size={20} color="#2D6A4F" />
+            <Wallet size={20} color="#2D6A4F" />
           </View>
           <View style={styles.titleContainer}>
             <Text style={styles.title}>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Card } from '../ui/Card';
-import { Clock, Trash2, DollarSign, FileText, ClipboardList, Calendar, MessageCircle } from 'lucide-react-native';
+import { Clock, Trash2, DollarSign, FileText, ClipboardList, Calendar, MessageCircle, HandCoins, Wallet } from 'lucide-react-native';
 
 export interface Activity {
   id: string;
@@ -28,8 +28,11 @@ export function ActivityCard({ activity, onDelete }: ActivityCardProps) {
   };
 
   const getActivityIcon = () => {
-    if (activity.entityType === 'expense' || activity.entityType === 'payment') {
-      return <DollarSign size={18} color="#2D6A4F" />;
+    if (activity.entityType === 'expense') {
+      return <Wallet size={18} color="#2D6A4F" />;
+    }
+    if (activity.entityType === 'payment') {
+      return <HandCoins size={18} color="#2D6A4F" />;
     }
     if (activity.entityType === 'document') {
       return <FileText size={18} color="#2D6A4F" />;
@@ -62,15 +65,16 @@ export function ActivityCard({ activity, onDelete }: ActivityCardProps) {
         </View>
       </View>
       <View style={styles.content}>
-        <Text style={styles.action}>
-          {getActivityIcon()} <Text style={{fontWeight: 'bold', color: '#2D6A4F'}}>{activity.details?.title || activity.details?.name || activity.details?.content || ''}</Text>
-          {((activity.entityType === 'task' && activity.details?.dueDate) || (activity.entityType === 'event' && activity.details?.date)) && (
-            <Text style={{ color: '#666' }}>  {formatDate(activity.entityType === 'task' ? activity.details.dueDate : activity.details.date)}</Text>
-          )}
-        </Text>
-        <Text style={styles.details}>
-          {activity.details?.title || activity.details?.name || activity.details?.content || ''}
-        </Text>
+        <View style={{ flexDirection: 'column' }}>
+          <Text style={styles.action}>
+            {getActivityIcon()}
+            <Text style={{fontWeight: 'bold', color: '#2D6A4F'}}> {activity.details?.title || activity.details?.name || activity.details?.content || ''}</Text>
+            {((activity.entityType === 'task' && activity.details?.dueDate) || (activity.entityType === 'event' && activity.details?.date)) && (
+              <Text style={{ color: '#666' }}>  {formatDate(activity.entityType === 'task' ? activity.details.dueDate : activity.details.date)}</Text>
+            )}
+          </Text>
+          <Text style={{ color: '#6C584C', fontSize: 12, marginTop: 2 }}>{activity.action}</Text>
+        </View>
         {onDelete && (
           <TouchableOpacity
             style={styles.trashButton}

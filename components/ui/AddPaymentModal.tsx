@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, Platform, Modal, KeyboardAvoid
 import { Calendar } from 'react-native-calendars';
 import { MemberPicker } from './MemberPicker';
 import { CategoryPicker } from './CategoryPicker';
+import { HandCoins } from 'lucide-react-native';
 
 const PAYMENT_CATEGORIES = [
   'Mensalidade',
@@ -55,7 +56,7 @@ export function AddPaymentModal({ visible, onClose, onSave }: AddPaymentModalPro
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ width: '100%', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
             <View style={{ backgroundColor: 'white', borderRadius: 16, padding: 24, width: '90%' }}>
               <Text style={{ fontSize: 22, fontWeight: '700', marginBottom: 16, color: '#2D6A4F', textAlign: 'center' }}>
-                Adicionar Pagamento
+                <HandCoins size={24} color="#2D6A4F" style={{ marginRight: 8 }} /> Adicionar Pagamento
               </Text>
               <Text style={{ fontWeight: '600', marginBottom: 8 }}>Membro:</Text>
               <MemberPicker value={form.member} onChange={member => setForm(f => ({ ...f, member }))} />

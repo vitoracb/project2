@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { TabView } from 'react-native-tab-view';
 import { ExpenseCard, Expense } from '@/components/expenses/ExpenseCard';
 import { Button } from '@/components/ui/Button';
-import { Plus, Filter as FilterIcon, DollarSign, Trash2, Calendar } from 'lucide-react-native';
+import { Plus, Filter as FilterIcon, DollarSign, Trash2, Calendar, HandCoins } from 'lucide-react-native';
 import { Calendar as ReactNativeCalendar, LocaleConfig } from 'react-native-calendars';
 import { AntDesign } from '@expo/vector-icons';
 import { Card } from '@/components/ui/Card';
@@ -853,7 +853,7 @@ const IncomesTab: FC<{ incomes: any[]; setIncomes: React.Dispatch<React.SetState
           <View style={styles.header}>
             <View style={styles.iconContainer}>
               <View style={styles.iconBackground}>
-                <DollarSign size={20} color="#2D6A4F" />
+                <HandCoins size={20} color="#2D6A4F" />
               </View>
             </View>
             <Text style={styles.categoryTop}>{income.category}</Text>
