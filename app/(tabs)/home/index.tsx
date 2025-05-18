@@ -219,8 +219,20 @@ export default function HomeScreen() {
   const [visibleYear, setVisibleYear] = React.useState(new Date().getFullYear());
 
   const markedDates = {
+    // Eventos: cor padrão
     ...events.reduce((acc: Record<string, any>, ev) => {
       acc[ev.date] = { selected: true, selectedColor: '#2D6A4F' };
+      return acc;
+    }, {}),
+    // Atividades: verde claro
+    ...tasks.reduce((acc: Record<string, any>, task) => {
+      if (task.dueDate) {
+        const dateKey = task.dueDate.split('T')[0];
+        // Se já existe (evento), mantém o evento (prioridade para eventos)
+        if (!acc[dateKey]) {
+          acc[dateKey] = { selected: true, selectedColor: '#EAF6EF' };
+        }
+      }
       return acc;
     }, {}),
     ...(selectedDate && !events.some(ev => ev.date === selectedDate)

@@ -26,17 +26,17 @@ export function ActivityCard({ activity, onDelete }: ActivityCardProps) {
       // Data no formato YYYY-MM-DD (evento)
       const [year, month, day] = dateString.split('-').map(Number);
       return new Date(year, month - 1, day).toLocaleDateString('pt-BR', {
-        month: 'short',
         day: 'numeric',
+        month: 'short',
+        year: 'numeric',
       });
     }
     // Outros formatos (com horário)
     const date = new Date(dateString);
     return date.toLocaleDateString('pt-BR', {
-      month: 'short',
       day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+      month: 'short',
+      year: 'numeric',
     });
   };
 

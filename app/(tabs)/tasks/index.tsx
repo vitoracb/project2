@@ -25,6 +25,41 @@ LocaleConfig.locales['pt-br'] = {
 };
 LocaleConfig.defaultLocale = 'pt-br';
 
+// Função utilitária para marcar datas de eventos e tarefas
+function getMarkedDates(
+  tasks: Array<{ dueDate?: string }>,
+  events: Array<{ date: string }>,
+  selectedDate: string | null
+): Record<string, { selected: boolean; selectedColor: string }> {
+  const marked: Record<string, { selected: boolean; selectedColor: string }> = {
+    // Eventos: cor padrão
+    ...events.reduce(
+      (acc: Record<string, { selected: boolean; selectedColor: string }>, ev: { date: string }) => {
+        acc[ev.date] = { selected: true, selectedColor: '#2D6A4F' };
+        return acc;
+      },
+      {}
+    ),
+    // Atividades: verde claro
+    ...tasks.reduce(
+      (acc: Record<string, { selected: boolean; selectedColor: string }>, task: { dueDate?: string }) => {
+        if (task.dueDate) {
+          const dateKey = task.dueDate.split('T')[0];
+          if (!acc[dateKey]) {
+            acc[dateKey] = { selected: true, selectedColor: '#EAF6EF' };
+          }
+        }
+        return acc;
+      },
+      {}
+    ),
+    ...(selectedDate && !events.some((ev: { date: string }) => ev.date === selectedDate)
+      ? { [selectedDate]: { selected: true, selectedColor: '#40916C' } }
+      : {})
+  };
+  return marked;
+}
+
 export default function TasksScreen() {
   const [activeFilter, setActiveFilter] = useState('all');
   const { tasks, addTask, editTask, deleteTask, moveTaskLeft, moveTaskRight } = useTasks();
@@ -51,6 +86,8 @@ export default function TasksScreen() {
   const [eventTitleInput, setEventTitleInput] = useState('');
   const [visibleMonth, setVisibleMonth] = useState(new Date().getMonth() + 1);
   const [visibleYear, setVisibleYear] = useState(new Date().getFullYear());
+
+  console.log('tasks no calendário:', tasks);
   
   // Lógica de filtragem
   let filteredTasks = tasks;
@@ -129,15 +166,10 @@ export default function TasksScreen() {
     }
   }, [events]);
 
-  const markedDates = {
-    ...events.reduce((acc: Record<string, any>, ev) => {
-      acc[ev.date] = { selected: true, selectedColor: '#2D6A4F' };
-      return acc;
-    }, {}),
-    ...(selectedDate && !events.some(ev => ev.date === selectedDate)
-      ? { [selectedDate]: { selected: true, selectedColor: '#40916C' } }
-      : {})
-  };
+  // Debug: verifique o array completo de tarefas
+  console.log('tasks no calendário:', tasks);
+
+  const markedDates = getMarkedDates(tasks, events, selectedDate);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -375,7 +407,7 @@ export default function TasksScreen() {
                     setNewTaskDate(new Date(year, month - 1, dayNum));
                     setShowCalendar(false);
                   }}
-                  markedDates={newTaskDate ? { [newTaskDate.toISOString().split('T')[0]]: {selected: true, selectedColor: '#2D6A4F'} } : {}}
+                  markedDates={getMarkedDates(tasks, events, newTaskDate ? newTaskDate.toISOString().split('T')[0] : null)}
                   theme={{ selectedDayBackgroundColor: '#2D6A4F', todayTextColor: '#2D6A4F' }}
                 />
               </View>
@@ -417,7 +449,7 @@ export default function TasksScreen() {
                     setFilterStartDate(new Date(year, month - 1, dayNum));
                     setShowStartCalendar(false);
                   }}
-                  markedDates={filterStartDate ? { [filterStartDate.toISOString().split('T')[0]]: {selected: true, selectedColor: '#2D6A4F'} } : {}}
+                  markedDates={getMarkedDates(tasks, events, filterStartDate ? filterStartDate.toISOString().split('T')[0] : null)}
                   theme={{ selectedDayBackgroundColor: '#2D6A4F', todayTextColor: '#2D6A4F' }}
                 />
               </View>
@@ -433,7 +465,7 @@ export default function TasksScreen() {
                     setFilterEndDate(new Date(year, month - 1, dayNum));
                     setShowEndCalendar(false);
                   }}
-                  markedDates={filterEndDate ? { [filterEndDate.toISOString().split('T')[0]]: {selected: true, selectedColor: '#2D6A4F'} } : {}}
+                  markedDates={getMarkedDates(tasks, events, filterEndDate ? filterEndDate.toISOString().split('T')[0] : null)}
                   theme={{ selectedDayBackgroundColor: '#2D6A4F', todayTextColor: '#2D6A4F' }}
                 />
               </View>
@@ -470,27 +502,18 @@ export default function TasksScreen() {
             <Text style={{ fontSize: 20, fontWeight: '700', marginBottom: 16, color: '#2D6A4F', textAlign: 'center' }}>
               Novo Evento
             </Text>
-            <TouchableOpacity onPress={() => setShowEventCalendar(true)} style={{ borderWidth: 1, borderColor: '#E6E6E6', borderRadius: 8, padding: 10, marginBottom: 12, backgroundColor: '#F0F0F0' }}>
-              <Text style={{ fontSize: 16, color: '#333' }}>{newEventDate ? newEventDate.toLocaleDateString('pt-BR') : 'Selecionar data'}</Text>
-            </TouchableOpacity>
-            {/* Calendário principal do modal de evento */}
             <ReactNativeCalendar
               onDayPress={day => {
                 const [year, month, dayNum] = day.dateString.split('-').map(Number);
                 setNewEventDate(new Date(year, month - 1, dayNum));
-                setShowEventCalendar(false);
               }}
               onMonthChange={monthObj => {
                 setVisibleMonth(monthObj.month);
                 setVisibleYear(monthObj.year);
               }}
-              markedDates={events.reduce((acc, ev) => {
-                acc[ev.date] = { selected: true, selectedColor: '#2D6A4F' };
-                return acc;
-              }, newEventDate ? { [newEventDate.toISOString().split('T')[0]]: {selected: true, selectedColor: '#2D6A4F'} } : {})}
+              markedDates={getMarkedDates(tasks, events, newEventDate ? newEventDate.toISOString().split('T')[0] : null)}
               theme={{ selectedDayBackgroundColor: '#2D6A4F', todayTextColor: '#2D6A4F' }}
             />
-            {/* Lista de eventos do mês - sempre visível */}
             <View style={{ marginTop: 12, marginBottom: 8 }}>
               {events.filter(ev => {
                 const [y, m] = ev.date.split('-');
