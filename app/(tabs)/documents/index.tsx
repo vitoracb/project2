@@ -20,6 +20,7 @@ export default function DocumentsScreen() {
   });
   const [previewVisible, setPreviewVisible] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   
   const filteredDocuments = selectedCategory === 'ALL' 
     ? documents 
@@ -206,39 +207,28 @@ export default function DocumentsScreen() {
               <Text style={{ fontWeight: '600', marginBottom: 8 }}>Categoria</Text>
               <TouchableOpacity
                 style={{ borderWidth: 1, borderColor: '#E6E6E6', borderRadius: 8, padding: 12, marginBottom: 12, backgroundColor: '#F0F0F0' }}
-                onPress={() => {
-                  const categorias: DocumentCategory[] = ['DEED', 'MAP', 'CERTIFICATE', 'RECEIPT', 'OTHER'];
-                  const labels = categorias.map(cat => getCategoryLabel(cat));
-                  if (Platform.OS === 'ios') {
-                    ActionSheetIOS.showActionSheetWithOptions(
-                      {
-                        options: [...labels, 'Cancelar'],
-                        cancelButtonIndex: labels.length,
-                      },
-                      (buttonIndex) => {
-                        if (buttonIndex < labels.length) {
-                          setUploadForm(f => ({ ...f, category: categorias[buttonIndex] }));
-                        }
-                      }
-                    );
-                  } else {
-                    const buttons: any[] = labels.map((label, idx) => ({
-                      text: label,
-                      onPress: () => setUploadForm(f => ({ ...f, category: categorias[idx] })),
-                    }));
-                    buttons.push({ text: 'Cancelar', style: 'cancel' });
-                    Alert.alert(
-                      'Selecione a categoria',
-                      undefined,
-                      buttons
-                    );
-                  }
-                }}
+                onPress={() => setShowCategoryDropdown(v => !v)}
               >
                 <Text style={{ color: uploadForm.category ? '#333' : '#888', fontWeight: '500' }}>
                   {uploadForm.category ? getCategoryLabel(uploadForm.category as DocumentCategory) : 'Selecione a categoria'}
                 </Text>
               </TouchableOpacity>
+              {showCategoryDropdown && (
+                <View style={{ borderWidth: 1, borderColor: '#E6E6E6', borderRadius: 8, marginBottom: 12, backgroundColor: '#fff' }}>
+                  {(['DEED', 'MAP', 'CERTIFICATE', 'RECEIPT', 'OTHER'] as DocumentCategory[]).map(cat => (
+                    <TouchableOpacity
+                      key={cat}
+                      style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' }}
+                      onPress={() => {
+                        setUploadForm(f => ({ ...f, category: cat }));
+                        setShowCategoryDropdown(false);
+                      }}
+                    >
+                      <Text style={{ color: '#333', fontWeight: '500' }}>{getCategoryLabel(cat)}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
               <Text style={{ fontWeight: '600', marginBottom: 8 }}>Nome do documento</Text>
               <TextInput
                 style={{ borderWidth: 1, borderColor: '#E6E6E6', borderRadius: 8, padding: 10, marginBottom: 12, fontSize: 16, color: '#333' }}

@@ -1,11 +1,11 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Platform } from 'react-native';
 import { House, CalendarClock, ClipboardList, FileText, MessageSquare, DollarSign, Hammer } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TabLayout() {
-  // const insets = useSafeAreaInsets(); // Não usar para tabBarStyle
+  const insets = useSafeAreaInsets();
   return (
     <Tabs
       screenOptions={({ route }) => ({
@@ -15,7 +15,8 @@ export default function TabLayout() {
           backgroundColor: '#FFFFFF',
           borderTopColor: '#E6E6E6',
           paddingTop: 5,
-          paddingBottom: 10,
+          paddingBottom: Platform.OS === 'android' ? 20 : insets.bottom || 10,
+          height: Platform.OS === 'android' ? 68 : 56 + (insets.bottom || 0),
         },
         tabBarLabelStyle: {
           fontSize: 12,

@@ -465,23 +465,26 @@ export default function HomeScreen() {
               <Text style={styles.actionText}>Adicionar pagamento</Text>
             </TouchableOpacity>
             
-            <TouchableOpacity style={styles.actionButton} onPress={() => setAddTaskModalVisible(true)}>
+            <TouchableOpacity style={styles.actionButton} onPress={() => {
+              setShowCalendar(false);
+              setAddTaskModalVisible(true);
+            }}>
               <View style={[styles.actionIcon, styles.taskIcon]}>
-                <ClipboardList size={20} color="#52B788" />
+                <ClipboardList size={20} color="#2D6A4F" />
               </View>
               <Text style={styles.actionText}>Criar tarefa</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.actionButton} onPress={() => setCalendarModalVisible(true)}>
               <View style={[styles.actionIcon, styles.eventIcon]}>
-                <Calendar size={20} color="#74C69D" />
+                <Calendar size={20} color="#2D6A4F" />
               </View>
               <Text style={styles.actionText}>Agendar evento</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.actionButton} onPress={() => setUploadModalVisible(true)}>
               <View style={[styles.actionIcon, styles.documentIcon]}>
-                <FileText size={20} color="#40916C" />
+                <FileText size={20} color="#2D6A4F" />
               </View>
               <Text style={styles.actionText}>Enviar documento</Text>
             </TouchableOpacity>
@@ -949,13 +952,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#E8F4EA',
   },
   documentIcon: {
-    backgroundColor: '#DAF2E4',
+    backgroundColor: '#E8F4EA',
   },
   taskIcon: {
-    backgroundColor: '#D1FAE5',
+    backgroundColor: '#E8F4EA',
   },
   eventIcon: {
-    backgroundColor: '#C7F9CC',
+    backgroundColor: '#E8F4EA',
   },
   commentIcon: {
     backgroundColor: '#E8F4EA',
