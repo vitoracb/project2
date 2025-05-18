@@ -22,22 +22,9 @@ interface ActivityCardProps {
 
 export function ActivityCard({ activity, onDelete }: ActivityCardProps) {
   const formatDate = (dateString: string) => {
-    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-      // Data no formato YYYY-MM-DD (evento)
-      const [year, month, day] = dateString.split('-').map(Number);
-      return new Date(year, month - 1, day).toLocaleDateString('pt-BR', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      });
-    }
-    // Outros formatos (com horário)
+    if (!dateString) return '';
     const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
+    return date.toLocaleDateString('pt-BR');
   };
 
   const getActivityIcon = () => {
@@ -76,11 +63,10 @@ export function ActivityCard({ activity, onDelete }: ActivityCardProps) {
       </View>
       <View style={styles.content}>
         <Text style={styles.action}>
-          {activity.entityType === 'comment'
-            ? 'Comentário Adicionado'
-            : (activity.entityType === 'event' || activity.entityType === 'task' || activity.entityType === 'expense' || activity.entityType === 'document' || activity.entityType === 'payment'
-                ? activity.action
-                : `${activity.action} a ${formatEntityType(activity.entityType)}`)}
+          {getActivityIcon()} <Text style={{fontWeight: 'bold', color: '#2D6A4F'}}>{activity.details?.title || activity.details?.name || activity.details?.content || ''}</Text>
+          {((activity.entityType === 'task' && activity.details?.dueDate) || (activity.entityType === 'event' && activity.details?.date)) && (
+            <Text style={{ color: '#666' }}>  {formatDate(activity.entityType === 'task' ? activity.details.dueDate : activity.details.date)}</Text>
+          )}
         </Text>
         <Text style={styles.details}>
           {activity.details?.title || activity.details?.name || activity.details?.content || ''}

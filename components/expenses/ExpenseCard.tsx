@@ -39,11 +39,7 @@ export function ExpenseCard({ expense, onPress, onDelete }: ExpenseCardProps) {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
+    return date.toLocaleDateString('pt-BR');
   };
 
   // Detecta se é uma "parcela virtual" (menu mensal)

@@ -107,6 +107,20 @@ export function CommentCard({ comment, isReply = false, onReply, onDelete, userI
     }
   };
 
+  const handleRemoveReplyAttachment = (idx: number) => {
+    Alert.alert(
+      'Remover anexo',
+      'Deseja remover este anexo?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Remover', style: 'destructive', onPress: () => {
+            setReplyAttachments(prev => prev.filter((_, i) => i !== idx));
+          }
+        }
+      ]
+    );
+  };
+
   return (
     <Card
       style={isReply ? [styles.card, styles.replyCard] : [styles.card] as any}
@@ -181,7 +195,13 @@ export function CommentCard({ comment, isReply = false, onReply, onDelete, userI
       {showReplyInput && replyAttachments.length > 0 && (
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 8 }}>
           {replyAttachments.map((uri, idx) => (
-            <TouchableOpacity key={idx} onPress={() => handleOpenAttachment(uri)} style={{ marginRight: 8, marginBottom: 8 }}>
+            <TouchableOpacity
+              key={idx}
+              onPress={() => handleOpenAttachment(uri)}
+              onLongPress={() => handleRemoveReplyAttachment(idx)}
+              delayLongPress={300}
+              style={{ marginRight: 8, marginBottom: 8 }}
+            >
               {uri.match(/\.(jpg|jpeg|png|gif)$/i) ? (
                 <Image source={{ uri }} style={{ width: 36, height: 36, borderRadius: 8 }} />
               ) : (

@@ -230,7 +230,7 @@ export default function HomeScreen() {
         const dateKey = task.dueDate.split('T')[0];
         // Se já existe (evento), mantém o evento (prioridade para eventos)
         if (!acc[dateKey]) {
-          acc[dateKey] = { selected: true, selectedColor: '#EAF6EF' };
+          acc[dateKey] = { selected: true, selectedColor: '#EAF6EF', selectedTextColor: '#000' };
         }
       }
       return acc;
@@ -536,40 +536,86 @@ export default function HomeScreen() {
                   theme={{ selectedDayBackgroundColor: '#2D6A4F', todayTextColor: '#2D6A4F' }}
                   hideArrows={false}
                 />
-                {/* Lista de eventos do mês */}
                 <View style={{ marginTop: 12, marginBottom: 8 }}>
-                  {events.filter(ev => {
-                    const [y, m] = ev.date.split('-');
-                    return Number(y) === visibleYear && Number(m) === visibleMonth;
-                  }).length > 0 ? (
-                    events.filter(ev => {
+                  {(() => {
+                    // Filtra eventos e tarefas do mês
+                    const monthEvents = events.filter(ev => {
                       const [y, m] = ev.date.split('-');
                       return Number(y) === visibleYear && Number(m) === visibleMonth;
-                    }).sort((a, b) => a.date.localeCompare(b.date)).map(ev => (
-                      <View key={ev.id} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                        <Calendar size={16} color="#2D6A4F" style={{ marginRight: 6 }} />
-                        <Text style={{ fontWeight: '600', color: '#2D6A4F', marginRight: 8 }}>{ev.title}</Text>
-                        <Text style={{ color: '#666', marginRight: 8 }}>{ev.date.split('-').reverse().join('/')}</Text>
-                        <TouchableOpacity
-                          onPress={() => {
-                            Alert.alert(
-                              'Excluir evento',
-                              'Tem certeza que deseja excluir este evento?',
-                              [
-                                { text: 'Cancelar', style: 'cancel' },
-                                { text: 'Excluir', style: 'destructive', onPress: () => deleteEvent(ev.id) }
-                              ]
-                            );
-                          }}
-                          style={{ padding: 4 }}
-                        >
-                          <Trash2 size={16} color="#DC2626" />
-                        </TouchableOpacity>
-                      </View>
-                    ))
-                  ) : (
-                    <Text style={{ color: '#888', fontSize: 13 }}>Nenhum evento agendado para este mês.</Text>
-                  )}
+                    });
+                    const monthTasks = tasks.filter(task => {
+                      if (!task.dueDate) return false;
+                      const d = new Date(task.dueDate);
+                      return d.getFullYear() === visibleYear && d.getMonth() + 1 === visibleMonth;
+                    });
+
+                    // Junta e ordena por data
+                    const allItems = [
+                      ...monthEvents.map(ev => ({ ...ev, type: 'event' })),
+                      ...monthTasks.map(task => ({ ...task, type: 'task' })),
+                    ].sort((a, b) => {
+                      const dateA = a.type === 'event'
+                        ? (a as { date: string }).date
+                        : (a as { dueDate: string }).dueDate || '';
+                      const dateB = b.type === 'event'
+                        ? (b as { date: string }).date
+                        : (b as { dueDate: string }).dueDate || '';
+                      return dateA.localeCompare(dateB);
+                    });
+
+                    if (allItems.length === 0) {
+                      return <Text style={{ color: '#888', fontSize: 13 }}>Nenhum evento ou atividade agendada para este mês.</Text>;
+                    }
+
+                    return allItems.map(item => {
+                      const isEvent = item.type === 'event' && 'date' in item;
+                      const isTask = item.type === 'task' && 'dueDate' in item;
+                      const dateStr = isEvent
+                        ? (item as { date: string }).date
+                        : isTask
+                          ? (item as { dueDate: string }).dueDate
+                          : '';
+                      const formattedDate = dateStr ? (() => {
+                        const [year, month, day] = dateStr.split('T')[0].split('-');
+                        return `${day}/${month}/${year}`;
+                      })() : '';
+                      return (
+                        <View key={item.id} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                          {isEvent ? (
+                            <Calendar size={16} color="#2D6A4F" style={{ marginRight: 6 }} />
+                          ) : (
+                            <ClipboardList size={16} color="#40916C" style={{ marginRight: 6 }} />
+                          )}
+                          <Text style={{ fontWeight: '600', color: isEvent ? '#2D6A4F' : '#40916C', marginRight: 8 }}>
+                            {item.title}
+                          </Text>
+                          <Text style={{ color: '#666', marginRight: 8 }}>
+                            {formattedDate}
+                          </Text>
+                          {(isEvent || isTask) && (
+                            <TouchableOpacity
+                              onPress={() => {
+                                Alert.alert(
+                                  isEvent ? 'Excluir evento' : 'Excluir tarefa',
+                                  isEvent ? 'Tem certeza que deseja excluir este evento?' : 'Tem certeza que deseja excluir esta tarefa?',
+                                  [
+                                    { text: 'Cancelar', style: 'cancel' },
+                                    { text: 'Excluir', style: 'destructive', onPress: () => {
+                                      if (isEvent) deleteEvent(item.id);
+                                      if (isTask) deleteTask(item.id);
+                                    } }
+                                  ]
+                                );
+                              }}
+                              style={{ padding: 4 }}
+                            >
+                              <Trash2 size={16} color="#DC2626" />
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      );
+                    });
+                  })()}
                 </View>
                 {selectedDate && (
                   <View style={{ marginTop: 16 }}>

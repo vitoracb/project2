@@ -61,10 +61,7 @@ export function TaskCard({ task, onPress, onDelete, onMoveLeft, onMoveRight }: T
   const formatDate = (dateString?: string) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    return date.toLocaleDateString(undefined, {
-      month: 'short',
-      day: 'numeric',
-    });
+    return date.toLocaleDateString('pt-BR');
   };
 
   const isOverdue = () => {
@@ -115,7 +112,8 @@ export function TaskCard({ task, onPress, onDelete, onMoveLeft, onMoveRight }: T
             </TouchableOpacity>
           )}
         </View>
-        <View style={styles.footerColumn}>
+        {/* Rodapé: nome do usuário e data, um abaixo do outro, alinhados à esquerda */}
+        <View style={{ marginTop: 8, alignItems: 'flex-start', paddingTop: 4 }}>
           {task.createdBy && (
             <Text style={styles.userText}>{task.createdBy.name}</Text>
           )}

@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView, Modal, 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TaskCard } from '@/components/tasks/TaskCard';
 import { Button } from '@/components/ui/Button';
-import { Plus, Filter, Calendar as CalendarIcon, Trash2 } from 'lucide-react-native';
+import { Plus, Filter, Calendar as CalendarIcon, Trash2, ClipboardList } from 'lucide-react-native';
 import { Calendar as ReactNativeCalendar, LocaleConfig } from 'react-native-calendars';
 import { useTasks, Task } from '../../context/TasksContext';
 import { useEvents } from '../../context/EventsContext';
@@ -30,23 +30,23 @@ function getMarkedDates(
   tasks: Array<{ dueDate?: string }>,
   events: Array<{ date: string }>,
   selectedDate: string | null
-): Record<string, { selected: boolean; selectedColor: string }> {
-  const marked: Record<string, { selected: boolean; selectedColor: string }> = {
+): Record<string, { selected: boolean; selectedColor: string; selectedTextColor: string }> {
+  const marked: Record<string, { selected: boolean; selectedColor: string; selectedTextColor: string }> = {
     // Eventos: cor padrão
     ...events.reduce(
-      (acc: Record<string, { selected: boolean; selectedColor: string }>, ev: { date: string }) => {
-        acc[ev.date] = { selected: true, selectedColor: '#2D6A4F' };
+      (acc: Record<string, { selected: boolean; selectedColor: string; selectedTextColor: string }>, ev: { date: string }) => {
+        acc[ev.date] = { selected: true, selectedColor: '#2D6A4F', selectedTextColor: '#000' };
         return acc;
       },
       {}
     ),
     // Atividades: verde claro
     ...tasks.reduce(
-      (acc: Record<string, { selected: boolean; selectedColor: string }>, task: { dueDate?: string }) => {
+      (acc: Record<string, { selected: boolean; selectedColor: string; selectedTextColor: string }>, task: { dueDate?: string }) => {
         if (task.dueDate) {
           const dateKey = task.dueDate.split('T')[0];
           if (!acc[dateKey]) {
-            acc[dateKey] = { selected: true, selectedColor: '#EAF6EF' };
+            acc[dateKey] = { selected: true, selectedColor: '#EAF6EF', selectedTextColor: '#000' };
           }
         }
         return acc;
@@ -54,7 +54,7 @@ function getMarkedDates(
       {}
     ),
     ...(selectedDate && !events.some((ev: { date: string }) => ev.date === selectedDate)
-      ? { [selectedDate]: { selected: true, selectedColor: '#40916C' } }
+      ? { [selectedDate]: { selected: true, selectedColor: '#40916C', selectedTextColor: '#000' } }
       : {})
   };
   return marked;
@@ -515,35 +515,81 @@ export default function TasksScreen() {
               theme={{ selectedDayBackgroundColor: '#2D6A4F', todayTextColor: '#2D6A4F' }}
             />
             <View style={{ marginTop: 12, marginBottom: 8 }}>
-              {events.filter(ev => {
-                const [y, m] = ev.date.split('-');
-                return Number(y) === visibleYear && Number(m) === visibleMonth;
-              }).length > 0 ? (
-                events.filter(ev => {
+              {(() => {
+                // Filtra eventos e tarefas do mês
+                const monthEvents = events.filter(ev => {
                   const [y, m] = ev.date.split('-');
                   return Number(y) === visibleYear && Number(m) === visibleMonth;
-                }).sort((a, b) => a.date.localeCompare(b.date)).map(ev => (
-                  <View key={ev.id} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                    <CalendarIcon size={16} color="#2D6A4F" style={{ marginRight: 6 }} />
-                    <Text style={{ fontWeight: '600', color: '#2D6A4F', marginRight: 8 }}>{ev.title}</Text>
-                    <Text style={{ color: '#666', marginRight: 8 }}>{ev.date.split('-').reverse().join('/')}</Text>
-                    <TouchableOpacity onPress={() => {
-                      Alert.alert(
-                        'Excluir evento',
-                        'Tem certeza que deseja excluir este evento?',
-                        [
-                          { text: 'Cancelar', style: 'cancel' },
-                          { text: 'Excluir', style: 'destructive', onPress: () => deleteEvent(ev.id) }
-                        ]
-                      );
-                    }} style={{ padding: 4 }}>
-                      <Trash2 size={16} color="#DC2626" />
-                    </TouchableOpacity>
+                });
+                const monthTasks = tasks.filter(task => {
+                  if (!task.dueDate) return false;
+                  const d = new Date(task.dueDate);
+                  return d.getFullYear() === visibleYear && d.getMonth() + 1 === visibleMonth;
+                });
+
+                // Junta e ordena por data
+                const allItems = [
+                  ...monthEvents.map(ev => ({ ...ev, type: 'event' })),
+                  ...monthTasks.map(task => ({ ...task, type: 'task' })),
+                ].sort((a, b) => {
+                  const dateA = a.type === 'event'
+                    ? (a as { date: string }).date
+                    : (a as { dueDate: string }).dueDate || '';
+                  const dateB = b.type === 'event'
+                    ? (b as { date: string }).date
+                    : (b as { dueDate: string }).dueDate || '';
+                  return dateA.localeCompare(dateB);
+                });
+
+                if (allItems.length === 0) {
+                  return <Text style={{ color: '#888', fontSize: 13 }}>Nenhum evento ou atividade agendada para este mês.</Text>;
+                }
+
+                return allItems.map(item => (
+                  <View key={item.id} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                    {item.type === 'event' ? (
+                      <CalendarIcon size={16} color="#2D6A4F" style={{ marginRight: 6 }} />
+                    ) : (
+                      <ClipboardList size={16} color="#40916C" style={{ marginRight: 6 }} />
+                    )}
+                    <Text style={{ fontWeight: '600', color: item.type === 'event' ? '#2D6A4F' : '#40916C', marginRight: 8 }}>
+                      {item.title}
+                    </Text>
+                    <Text style={{ color: '#666', marginRight: 8 }}>
+                      {(() => {
+                        const dateStr = item.type === 'event'
+                          ? (item as { date: string }).date
+                          : (item as { dueDate: string }).dueDate;
+                        if (!dateStr) return '';
+                        const [year, month, day] = dateStr.split('T')[0].split('-');
+                        return `${day}/${month}/${year}`;
+                      })()}
+                    </Text>
+                    {(item.type === 'event' || item.type === 'task') && (
+                      <TouchableOpacity
+                        onPress={() => {
+                          Alert.alert(
+                            item.type === 'event' ? 'Excluir evento' : 'Excluir tarefa',
+                            item.type === 'event'
+                              ? 'Tem certeza que deseja excluir este evento?'
+                              : 'Tem certeza que deseja excluir esta tarefa?',
+                            [
+                              { text: 'Cancelar', style: 'cancel' },
+                              { text: 'Excluir', style: 'destructive', onPress: () => {
+                                if (item.type === 'event') deleteEvent(item.id);
+                                if (item.type === 'task') deleteTask(item.id);
+                              } }
+                            ]
+                          );
+                        }}
+                        style={{ padding: 4 }}
+                      >
+                        <Trash2 size={16} color="#DC2626" />
+                      </TouchableOpacity>
+                    )}
                   </View>
-                ))
-              ) : (
-                <Text style={{ color: '#888', fontSize: 13 }}>Nenhum evento agendado para este mês.</Text>
-              )}
+                ));
+              })()}
             </View>
             <TextInput
               style={{ borderWidth: 1, borderColor: '#E6E6E6', borderRadius: 8, padding: 10, marginBottom: 12, fontSize: 16, color: '#333' }}

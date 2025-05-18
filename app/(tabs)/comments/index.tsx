@@ -21,9 +21,6 @@ import * as WebBrowser from 'expo-web-browser';
 import { ActionSheetIOS, Alert } from 'react-native';
 import { useComments } from '../../context/CommentsContext';
 
-// Mock data for comments
-const initialComments: Comment[] = [];
-
 const USER_ID = '0'; // id do usuário logado
 
 export default function CommentsScreen() {
@@ -48,8 +45,7 @@ export default function CommentsScreen() {
     const replies = comments.filter(comment => comment.parentId === item.id);
     return (
       <View style={styles.commentThread}>
-        <CommentCard comment={item} isReply={!!item.parentId} onReply={!item.parentId ? handleReply : undefined} onDelete={handleDeleteComment} userId={USER_ID} />
-        {replies.map(reply => (
+   <CommentCard comment={item} isReply={!!item.parentId} onReply={handleReply} onDelete={handleDeleteComment} userId={USER_ID} />        {replies.map(reply => (
           <React.Fragment key={reply.id}>
             {renderComment({ item: reply })}
           </React.Fragment>
