@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { TouchableOpacity, Text, View } from 'react-native';
-import { useCategories } from '../../app/context/CategoriesContext';
-
+import { useCategories } from '../../context/CategoriesContext';
 interface CategoryPickerProps {
   value: string;
   onChange: (v: string) => void;

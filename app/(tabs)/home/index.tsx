@@ -35,17 +35,17 @@ import {
   Wallet
 } from 'lucide-react-native';
 import { AddExpenseModal } from '@/components/expenses/AddExpenseModal';
-import { useFinance, Payment } from '../../context/FinanceContext';
-import { useTasks, Task } from '../../context/TasksContext';
+import { useFinance, Payment } from '../../../context/FinanceContext';
+import { useTasks, Task } from '../../../context/TasksContext';
 import { AddTaskModal } from '../../../components/tasks/AddTaskModal';
 import { useRouter, useNavigation } from 'expo-router';
-import { useEvents, Event as CalendarEvent } from '../../context/EventsContext';
+import { useEvents, Event as CalendarEvent } from '../../../context/EventsContext';
 import { addDays, isAfter, isSameDay } from 'date-fns';
 import { Calendar as ReactNativeCalendar, LocaleConfig } from 'react-native-calendars';
-import { useDocuments, DocumentCategory } from '../../context/DocumentsContext';
+import { useDocuments, DocumentCategory } from '../../../context/DocumentsContext';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
-import { useComments } from '../../context/CommentsContext';
+import { useComments } from '../../../context/CommentsContext';
 import { MemberPicker } from '@/components/ui/MemberPicker';
 import { AddPaymentModal } from '@/components/ui/AddPaymentModal';
 import { UserAvatarButton } from '../../../components/UserAvatarButton';
@@ -137,11 +137,11 @@ export default function HomeScreen() {
     };
   }
 
-  function expenseToActivity(expense: import('../../context/FinanceContext').Expense) {
+  function expenseToActivity(expense: import('../../../context/FinanceContext').Expense) {
     return {
       id: expense.id,
       action: 'Despesa Adicionada',
-      entityType: 'expense',
+    entityType: 'expense',
       entityId: expense.id,
       details: { title: expense.title, amount: expense.amount },
       createdAt: expense.date,
@@ -161,7 +161,7 @@ export default function HomeScreen() {
     };
   }
 
-  function documentToActivity(doc: import('../../context/DocumentsContext').Document) {
+  function documentToActivity(doc: import('../../../context/DocumentsContext').Document) {
     return {
       id: doc.id,
       action: 'Documento Enviado',
@@ -173,7 +173,7 @@ export default function HomeScreen() {
     };
   }
 
-  function commentToActivity(comment: import('../../context/CommentsContext').Comment) {
+  function commentToActivity(comment: import('../../../context/CommentsContext').Comment) {
     return {
       id: comment.id,
       action: 'Comentário Adicionado',
@@ -330,7 +330,7 @@ export default function HomeScreen() {
 
   const handleLogout = async () => {
     await signOut();
-    router.replace('/(auth)/sign-in');
+    router.replace('/(auth)/login');
     setLogoutModalVisible(false);
   };
 

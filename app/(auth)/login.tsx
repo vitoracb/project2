@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSignIn } from '@clerk/clerk-expo';
 import { useRouter } from 'expo-router';
+import { User } from 'lucide-react-native';
+import { useAuth } from '@clerk/clerk-expo';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -9,18 +11,27 @@ export default function LoginScreen() {
   const { signIn, setActive, isLoaded } = useSignIn();
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const auth = useAuth();
+  console.log('Auth:', auth);
 
   const handleLogin = async () => {
-    if (!isLoaded) return;
+    console.log('Iniciando handleLogin');
+    if (!isLoaded) {
+      console.log('Clerk não carregado');
+      return;
+    }
     setError(null);
     try {
       const result = await signIn.create({
         identifier: email,
         password,
       });
+      console.log('Login bem-sucedido', result);
       await setActive({ session: result.createdSessionId });
-      router.replace('/(tabs)/home'); // ajuste o caminho se necessário
+      console.log('Sessão ativada, navegando para home...');
+      router.replace('/home');
     } catch (err: any) {
+      console.log('Erro no login:', err);
       setError('E-mail ou senha inválidos');
     }
   };
@@ -28,8 +39,11 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.inner}>
+        <View style={styles.iconCircle}>
+          <User size={40} color="#2D6A4F" />
+        </View>
         <Text style={styles.title}>Floresta Sagrada</Text>
-        <Text style={styles.subtitle}>Bem-vindo de volta!</Text>
+        <Text style={styles.subtitle}>Conecte-se com a natureza</Text>
 
         <TextInput
           style={styles.input}
@@ -51,20 +65,15 @@ export default function LoginScreen() {
 
         {error && <Text style={{ color: '#DC2626', marginBottom: 12 }}>{error}</Text>}
 
-        <TouchableOpacity style={styles.forgotButton}>
-          <Text style={styles.forgotText}>Esqueci minha senha</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+        <TouchableOpacity
+          style={styles.loginButton}
+          onPress={() => {
+            console.log('Botão Entrar pressionado');
+            handleLogin();
+          }}
+        >
           <Text style={styles.loginButtonText}>Entrar</Text>
         </TouchableOpacity>
-
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Não tem conta?</Text>
-          <TouchableOpacity onPress={() => router.replace('/(auth)/sign-up')}>
-            <Text style={styles.footerLink}>Cadastre-se</Text>
-          </TouchableOpacity>
-        </View>
       </View>
     </KeyboardAvoidingView>
   );
@@ -88,14 +97,23 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     alignItems: 'center',
   },
+  iconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#EAF6EF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '700',
     color: '#2D6A4F',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 15,
     color: '#6C584C',
     marginBottom: 24,
   },

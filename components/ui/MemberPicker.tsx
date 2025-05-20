@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { TouchableOpacity, Text, View } from 'react-native';
-import { useMembers } from '../../app/context/MembersContext';
+import { useMembers } from '../../context/MembersContext';
 import ReactNativeCalendar from 'react-native-calendars';
 
 export function MemberPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {

@@ -19,7 +19,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import * as WebBrowser from 'expo-web-browser';
 import { ActionSheetIOS, Alert } from 'react-native';
-import { useComments } from '../../context/CommentsContext';
+import { useComments } from '../../../context/CommentsContext';
 
 const USER_ID = '0'; // id do usuário logado
 

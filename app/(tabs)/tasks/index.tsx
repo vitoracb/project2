@@ -5,8 +5,8 @@ import { TaskCard } from '@/components/tasks/TaskCard';
 import { Button } from '@/components/ui/Button';
 import { Plus, Filter, Calendar as CalendarIcon, Trash2, ClipboardList } from 'lucide-react-native';
 import { Calendar as ReactNativeCalendar, LocaleConfig } from 'react-native-calendars';
-import { useTasks, Task } from '../../context/TasksContext';
-import { useEvents } from '../../context/EventsContext';
+import { useTasks, Task } from '../../../context/TasksContext';
+import { useEvents } from '../../../context/EventsContext';
 
 LocaleConfig.locales['pt-br'] = {
   monthNames: [

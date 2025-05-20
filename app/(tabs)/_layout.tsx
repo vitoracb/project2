@@ -18,11 +18,22 @@ export default function TabLayout() {
           paddingBottom: Platform.OS === 'android' ? 20 : insets.bottom || 10,
           height: Platform.OS === 'android' ? 68 : 56 + (insets.bottom || 0),
         },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '500',
-          marginBottom: 4,
-        },
+        tabBarLabel: (() => {
+          switch (route.name) {
+            case 'home':
+              return 'Início';
+            case 'activities':
+              return 'Financeiro';
+            case 'tasks':
+              return 'Atividades';
+            case 'documents':
+              return 'Documentos';
+            case 'comments':
+              return 'Comentários';
+            default:
+              return '';
+          }
+        })(),
         tabBarItemStyle: { flex: 1 },
         headerShown: false,
         tabBarIcon: ({ color, size }) => {
@@ -41,22 +52,14 @@ export default function TabLayout() {
               return null;
           }
         },
-        tabBarLabel: (() => {
-          switch (route.name) {
-            case 'home':
-              return 'Início';
-            case 'activities':
-              return 'Financeiro';
-            case 'tasks':
-              return 'Atividades';
-            case 'documents':
-              return 'Documentos';
-            case 'comments':
-              return 'Comentários';
-            default:
-              return '';
-          }
-        })(),
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '500',
+          marginBottom: 4,
+          flexWrap: 'nowrap',
+          textAlign: 'center',
+          includeFontPadding: false,
+        },
       })}
     >
       <Tabs.Screen
@@ -103,10 +106,3 @@ export default function TabLayout() {
     </Tabs>
   );
 }
-
-const styles = StyleSheet.create({
-  tabBarLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-});

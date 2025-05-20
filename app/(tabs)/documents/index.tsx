@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Upload, FileText, MapPin, FileCheck, Receipt, FileQuestion } from 'lucide-react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
-import { useDocuments } from '../../context/DocumentsContext';
+import { useDocuments } from '../../../context/DocumentsContext';
 
 export default function DocumentsScreen() {
   const [selectedCategory, setSelectedCategory] = useState<DocumentCategory | 'ALL'>('ALL');

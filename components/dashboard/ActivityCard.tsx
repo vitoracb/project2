@@ -66,13 +66,13 @@ export function ActivityCard({ activity, onDelete }: ActivityCardProps) {
       </View>
       <View style={styles.content}>
         <View style={{ flexDirection: 'column' }}>
-          <Text style={styles.action}>
+        <Text style={styles.action}>
             {getActivityIcon()}
             <Text style={{fontWeight: 'bold', color: '#2D6A4F'}}> {activity.details?.title || activity.details?.name || activity.details?.content || ''}</Text>
             {((activity.entityType === 'task' && activity.details?.dueDate) || (activity.entityType === 'event' && activity.details?.date)) && (
               <Text style={{ color: '#666' }}>  {formatDate(activity.entityType === 'task' ? activity.details.dueDate : activity.details.date)}</Text>
             )}
-          </Text>
+        </Text>
           <Text style={{ color: '#6C584C', fontSize: 12, marginTop: 2 }}>{activity.action}</Text>
         </View>
         {onDelete && (

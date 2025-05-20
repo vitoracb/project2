@@ -122,7 +122,7 @@ export function CommentCard({ comment, isReply = false, onReply, onDelete, userI
   };
 
   return (
-    <Card
+    <Card 
       style={isReply ? [styles.card, styles.replyCard] : [styles.card] as any}
       flat
     >
@@ -208,7 +208,7 @@ export function CommentCard({ comment, isReply = false, onReply, onDelete, userI
                 <View style={{ backgroundColor: '#E8F4EA', borderRadius: 8, padding: 6, flexDirection: 'row', alignItems: 'center' }}>
                   <FileText size={14} color="#2D6A4F" />
                   <Text style={{ marginLeft: 4, maxWidth: 60 }} numberOfLines={1}>{uri.split('/').pop()}</Text>
-                </View>
+            </View>
               )}
             </TouchableOpacity>
           ))}

@@ -10,7 +10,7 @@ import { AntDesign } from '@expo/vector-icons';
 import { Card } from '@/components/ui/Card';
 import { PieChart, BarChart } from 'react-native-chart-kit';
 import { Dimensions } from 'react-native';
-import { useFinance } from '../../context/FinanceContext';
+import { useFinance } from '../../../context/FinanceContext';
 import { ScrollView as RNScrollView } from 'react-native';
 
 // Mock data for expenses
@@ -302,7 +302,7 @@ const ExpensesTab: FC<{ expenses: Expense[]; setExpenses: React.Dispatch<React.S
   // ExpensesTab: definir cor do botão e do ícone de filtro
   const filterButtonBg = isAnyFilterActive ? '#2D6A4F' : '#E8F4EA';
   const filterIconColor = isAnyFilterActive ? '#fff' : '#2D6A4F';
-
+  
   return (
     <View style={styles.tabContainer}>
       <View style={styles.filterContainer}>
@@ -332,8 +332,8 @@ const ExpensesTab: FC<{ expenses: Expense[]; setExpenses: React.Dispatch<React.S
             <FilterIcon size={20} color={filterIconColor} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
-            <Plus size={20} color="#2D6A4F" />
-          </TouchableOpacity>
+          <Plus size={20} color="#2D6A4F" />
+        </TouchableOpacity>
         </View>
       </View>
       
@@ -691,8 +691,8 @@ const ExpensesTab: FC<{ expenses: Expense[]; setExpenses: React.Dispatch<React.S
           </View>
         </View>
       </Modal>
-  </View>
-);
+    </View>
+  );
 };
 
 const IncomesTab: FC<{ incomes: any[]; setIncomes: React.Dispatch<React.SetStateAction<any[]>> }> = ({ incomes, setIncomes }) => {
@@ -854,7 +854,7 @@ const IncomesTab: FC<{ incomes: any[]; setIncomes: React.Dispatch<React.SetState
             <View style={styles.iconContainer}>
               <View style={styles.iconBackground}>
                 <HandCoins size={20} color="#2D6A4F" />
-              </View>
+  </View>
             </View>
             <Text style={styles.categoryTop}>{income.category}</Text>
             {onDelete && (
@@ -889,7 +889,7 @@ const IncomesTab: FC<{ incomes: any[]; setIncomes: React.Dispatch<React.SetState
   };
 
           return (
-    <View style={styles.tabContainer}>
+  <View style={styles.tabContainer}>
       {/* Submenu Geral/Mensal */}
       <View style={styles.filterContainer}>
             <TouchableOpacity
@@ -1282,8 +1282,8 @@ const IncomesTab: FC<{ incomes: any[]; setIncomes: React.Dispatch<React.SetState
           </View>
         </View>
       </Modal>
-    </View>
-  );
+  </View>
+);
 };
 
 interface FlowTabContentProps {
@@ -1335,7 +1335,7 @@ const FlowTabContent = React.memo(({
         >
           <Text style={[styles.filterText, mode === 'ANUAL' && styles.activeFilterText]}>Anual</Text>
         </TouchableOpacity>
-      </View>
+  </View>
       {/* Título Fluxo de Caixa */}
       <Text style={{ fontSize: 22, fontWeight: '700', color: '#000', textAlign: 'left', alignSelf: 'flex-start', marginTop: 24, marginBottom: 24 }}>
         Fluxo de Caixa
@@ -1505,7 +1505,7 @@ function FlowTab(props: any) {
     ],
   };
 
-  return (
+    return (
     <FlowTabContent
       mode={props.mode}
       setMode={props.setMode}
@@ -1558,7 +1558,7 @@ const ScheduleTab = () => {
     }));
   };
 
-  return (
+          return (
     <View style={styles.tabContainer}>
       <Text style={styles.tabTitle}>Controle de Mensalidades</Text>
       {/* Navegação de ano */}
@@ -1592,7 +1592,7 @@ const ScheduleTab = () => {
                 <Text style={{ color: '#333' }}>{member}</Text>
               </View>
               {MONTHS_SHORT_PT.map((_, monthIdx) => (
-                <TouchableOpacity
+            <TouchableOpacity
                   key={monthIdx}
                   style={{ width: 48, height: 40, alignItems: 'center', justifyContent: 'center' }}
                   onPress={() => togglePayment(member, monthIdx)}
@@ -1602,15 +1602,15 @@ const ScheduleTab = () => {
                       <AntDesign name="check" size={16} color="#fff" />
                     )}
                   </View>
-                </TouchableOpacity>
+            </TouchableOpacity>
               ))}
             </View>
           ))}
         </View>
       </ScrollView>
-    </View>
-  );
-};
+      </View>
+    );
+  };
 
 export default function ActivitiesScreen() {
   const [activeTab, setActiveTab] = useState<'expenses' | 'incomes' | 'flow' | 'schedule'>('expenses');
